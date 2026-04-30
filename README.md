@@ -29,6 +29,7 @@ https://drive.google.com/drive/folders/18Zxvjh24F09ZtroSKzTkWnSDtKWyZoEm?usp=sha
 
 ## Repository Structure (suggested)
 
+```text
 birks-1973-skye-veg/
 ├── data_raw/              # Original extracted tables (do not edit)
 ├── data_clean/            # Final tidy CSVs (main output)
@@ -43,7 +44,7 @@ birks-1973-skye-veg/
 ├── outputs/               # Figures, clustering results
 ├── README.md
 └── requirements.txt or environment.yml
-
+```
 
 ## Collaboration Guidelines
 
