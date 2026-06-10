@@ -7,3 +7,11 @@ images/
 __pycache__/
 .env
 .DS_Store
+instructions.md
+CLAUDE.md
+claude.md
+codex.md
+codex-instructions.md
+claude-instructions.md
+*codex*instructions*.md
+*claude*instructions*.md
