@@ -22,3 +22,7 @@
 ## Ollama model cleanup
 - Deleted unused local model `qwen2.5vl:7b`.
 - Kept active pipeline models `qwen2.5vl:3b` and `qwen2.5:3b`.
+
+## GitHub sync check
+- Confirmed branch is `pipeline-setup`, not `main`.
+- Pushed to `origin pipeline-setup`; GitHub was already up to date.
