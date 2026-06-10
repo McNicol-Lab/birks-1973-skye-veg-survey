@@ -1,162 +1,175 @@
 # Timeline
 
-## Project operating rules
-- Goal: build a local/offline pipeline that turns geo-botanical scan images into tracked CSV files.
-- Machine target: MacBook Air 15-inch, M2, 8GB unified memory; this matters because large local vision models can exhaust memory or run very slowly.
-- Runtime stack: Ollama locally, Python scripts, `ollama`, `pandas`, `pillow`, `tqdm`, and `gdown`.
-- Git rule: work happens on `pipeline-setup`; never push directly to `main`.
-- Data rule: raw scans stay in ignored `images/`; CSV outputs stay tracked in `output/`.
-- Memory rule: do not run parser and validator models at the same time.
+## 1. Goal
+- Build a local, offline pipeline that turns scanned Birks vegetation-table images into clean CSV data.
+- The machine is an 8GB M2 MacBook Air, so the pipeline has to use smaller models, resized image copies, and one model at a time.
+- Raw scans stay in `images/`.
+- CSV outputs are written to `output/`.
 
-## Initial repository setup
-- Created the local pipeline files: `parse_images.py`, `validate_names.py`, `download_drive.py`, `requirements.txt`, starter output CSVs, `.gitignore`, README updates, and timeline tracking.
-- `parse_images.py` was built to scan `images/`, send each image to an Ollama vision model, request a strict JSON object, normalize values, and write `output/output.csv`.
-- `validate_names.py` was built to read `output/output.csv`, validate extracted species names with a local text model, add `corrected_name`, `confidence`, `flag`, and `note`, and write `output/output_validated.csv`.
-- `download_drive.py` was added as an optional helper that downloads a Google Drive folder into ignored `images/`.
-- `.gitignore` was set to ignore raw image folders/extensions, zip archives, caches, `.env`, `.DS_Store`, and local agent instruction files.
-- Verified script syntax with `python3 -m py_compile parse_images.py validate_names.py download_drive.py`.
-- Ran zero-row dry runs so the scripts could be checked without loading Ollama models.
-- Committed as `17f2b8a Add local botany digitizer pipeline`.
+## 2. First Plan
+- The first plan was a general geo-botanical OCR pipeline.
+- `parse_images.py` reads images from `images/`, sends each image to a local Ollama vision model, asks for JSON, and writes `output/output.csv`.
+- The first JSON fields were `species_name`, `location`, `coordinates`, `date`, `collector`, `notes`, `other_visible_fields`, `parse_status`, `parse_error`, and `raw_response`.
+- `validate_names.py` reads `output/output.csv`, checks extracted species names with a local text model, and writes `output/output_validated.csv`.
+- `download_drive.py` was added as an optional helper for downloading a Google Drive image folder into `images/`.
+- This plan worked as a script structure, but it assumed the scans were specimen labels. The actual images are vegetation tables, so this was not the final data shape we need.
 
-## Local instruction file handling
-- User asked to keep local Codex/Claude instruction markdown files out of git.
-- Updated `.gitignore` to ignore `instructions.md`, `CLAUDE.md`, `codex.md`, `codex-instructions.md`, `claude-instructions.md`, and wildcard Codex/Claude instruction filenames.
-- Ran `git rm --cached instructions.md` so the file stays local for Codex to read but is removed from GitHub tracking.
-- Result: `instructions.md` remains available locally, but it is no longer committed.
-- Committed as `9c51e79 Ignore local agent instruction files`.
+## 3. Validator Behavior
+- The validator model is `qwen2.5:3b`.
+- If `species_name` is blank, the script does not call the model.
+- Instead, it sets low confidence, marks `flag=true`, and writes the note `No species name was extracted.`
+- If `species_name` exists, the validator asks the model to check botanical binomial format and fix obvious OCR mistakes.
+- This behavior is useful later, but only after the parser extracts real taxon names from table rows.
 
-## First Ollama install attempt
-- Installed Ollama with Homebrew and started it as a background service.
-- Tried to pull `qwen2-vl:7b` because that was the originally requested parsing model name.
-- Ollama did not publish that exact tag, so the available equivalent family model `qwen2.5vl:7b` was pulled instead.
-- Updated `parse_images.py` and README so the parser default matched the installed model at that time.
-- Added `*.zip` to `.gitignore` so raw image archives would not be committed.
-- Verified `ollama list` showed `qwen2.5vl:7b`.
-- Verified script syntax again with `python3 -m py_compile ...`.
-- Committed as `af6c7ba Set up Ollama parsing model`.
+## 4. First Ollama Model Attempt
+- The originally requested vision model was `qwen2-vl:7b`.
+- Ollama did not have that exact tag available.
+- We pulled `qwen2.5vl:7b`, which is the available Qwen vision-language model family in Ollama.
+- The parser default was temporarily pointed at `qwen2.5vl:7b`.
+- This got a vision model onto the machine, but it did not give us a working pipeline yet.
 
-## First five image test: setup and failures
-- User had 96 images in `images/` and asked to run the model on the first 5.
-- Found that normal lexicographic sorting would choose `_1`, `_10`, `_11`, etc., so `parse_images.py` was changed to use natural numeric sorting.
-- Natural sorting means `_1`, `_2`, `_3`, `_4`, `_5` are treated as the first five images.
-- First parser run used `python3 parse_images.py --limit 5 --batch-size 1 --keep-raw`.
-- That run failed for all 5 rows because the Homebrew Ollama install could not find `llama-server`.
-- Error found in `output/output.csv`: `llama-server binary not found`.
-- Investigated the Homebrew install and found the Homebrew keg contained only the Ollama CLI, not the runtime binary the server was trying to launch.
+## 5. First Five Image Test
+- There are 96 images in `images/`.
+- We tested only the first 5 images first so we could find problems without wasting time on the full set.
+- Normal filename sorting would choose files like `_1`, `_10`, `_11` before `_2`.
+- We changed the parser to use natural numeric sorting so the first five are `_1`, `_2`, `_3`, `_4`, `_5`.
+- The first test command shape was:
+  `python3 parse_images.py --limit 5 --batch-size 1 --keep-raw`
+- That first run failed for all 5 images.
+- `output/output.csv` showed `parse_status=error` for each row.
+- The key error was that Ollama could not find `llama-server`.
 
-## Ollama runtime repair
-- Installed the official Ollama macOS app bundle because it includes the missing `llama-server`.
-- Launched Ollama from `/Applications/Ollama.app`.
-- Confirmed the app bundle contained `/Applications/Ollama.app/Contents/Resources/llama-server`.
-- Discovered the app initially launched an old/stale runtime: the bundled `ollama` reported `0.17.0`.
-- The stale runtime crashed when trying to load newer `qwen2.5vl` models, producing repeated `SIGSEGV` failures in `~/.ollama/logs/server.log`.
-- Found Ollama had downloaded a newer update zip into `~/Library/Caches/ollama/updates/.../Ollama-darwin.zip`.
-- Moved the stale app aside as `/Applications/Ollama-0.17-backup.app`.
-- Extracted the downloaded current app bundle into `/Applications`.
-- Confirmed the repaired app runtime reported client version `0.30.7`.
-- Confirmed the current runtime saw local models with `ollama list`.
+## 6. Homebrew Ollama Problem
+- Homebrew installed an `ollama` command, but that install did not include the runtime binary needed for model inference.
+- The missing runtime binary was `llama-server`.
+- Because of that, Python could contact Ollama, but Ollama could not actually start the model.
+- This was not a bug in `parse_images.py`.
+- It was an Ollama installation/runtime problem.
 
-## Parser performance fixes for 8GB RAM
-- Full images were about 2100x3000 pixels, which was too heavy for first-pass local vision parsing.
-- Added `--max-image-side` to `parse_images.py`.
-- What it does: opens the original scan, creates a temporary resized JPEG if the scan is too large, sends that temporary copy to Ollama, then deletes the temporary file.
-- Original images in `images/` are never modified.
-- Added `--num-predict` to cap how many tokens Ollama can generate per image.
-- What it does: prevents a full-page scan from causing the model to produce a very long answer.
-- Added `format="json"` to the Ollama request so the server pushes the model toward JSON output.
-- Changed non-resume behavior so running without `--resume` starts a fresh CSV instead of appending duplicates to old failed rows.
-- Kept `--resume` behavior for interrupted long runs: load existing rows and skip completed images.
+## 7. Ollama Runtime Fix
+- We installed the official Ollama macOS app bundle because it includes `llama-server`.
+- The app bundle had `/Applications/Ollama.app/Contents/Resources/llama-server`.
+- The first app runtime that launched was stale and reported version `0.17.0`.
+- That stale runtime crashed when loading newer `qwen2.5vl` models.
+- The logs showed repeated `SIGSEGV` crashes.
+- A newer Ollama update zip already existed in `~/Library/Caches/ollama/updates/.../Ollama-darwin.zip`.
+- We moved the stale app aside and extracted the current app bundle into `/Applications`.
+- After that, Ollama reported version `0.30.7`.
+- This fixed the missing-runner problem and the stale-runtime crash problem.
 
-## 7B model was not practical on this Mac
-- Tried running `qwen2.5vl:7b` after the runtime repair.
-- Even with resizing and token caps, the 7B model was too slow for these page scans on the 8GB MacBook Air.
-- Stopped stalled parser processes after they spent minutes without completing the first fresh image.
-- Unloaded the 7B model before trying a smaller model so both models were not active at once.
-- Decision: keep the 7B model only temporarily for comparison, but switch the working parser default to `qwen2.5vl:3b`.
+## 8. Full-Size Images Were Too Heavy
+- The scans are roughly 2100 by 3000 pixels.
+- Sending full-size scans to a local vision model was too slow on the 8GB MacBook Air.
+- The 7B model was also too heavy and stalled during early tests.
+- We added temporary image resizing to `parse_images.py`.
+- The script leaves the original scan unchanged.
+- It creates a smaller temporary JPEG, sends that to Ollama, then deletes the temporary copy.
+- We tested this with `--max-image-side 1000`.
 
-## Working parser model: qwen2.5vl:3b
-- Pulled `qwen2.5vl:3b`, a smaller local vision model in the same family.
-- First attempt with the stale Ollama runtime failed quickly with `model failed to load`.
-- Server logs showed the stale runtime was crashing with `SIGSEGV`.
-- After replacing the app runtime with Ollama `0.30.7`, `qwen2.5vl:3b` loaded and ran.
-- Updated `parse_images.py` default model to `qwen2.5vl:3b`.
-- Updated README to document `qwen2.5vl:3b` as the working default for this 8GB machine.
-- Removed README instructions that suggested the heavier 7B model as the normal path.
+## 9. Parser Controls Added
+- `--max-image-side` controls the largest side of the temporary image copy sent to Ollama.
+- `--num-predict` limits how long the model response can be.
+- JSON mode was added to push the model toward returning parseable JSON.
+- Natural sorting was added so numbered scan files run in the expected order.
+- Fresh runs now overwrite old failed test rows unless `--resume` is used.
+- `--resume` still exists so interrupted long runs can skip images already processed.
 
-## First successful first-five parse
-- Ran:
+## 10. Why The 7B Vision Model Was Dropped
+- `qwen2.5vl:7b` was too slow for practical work on this machine.
+- Even with resized images and shorter responses, it spent too long on early pages.
+- We stopped stalled parser runs instead of waiting indefinitely.
+- We unloaded the 7B model before trying smaller models so memory stayed under control.
+- The 7B model was removed because it was not part of the working path.
+
+## 11. Working Vision Model
+- We pulled `qwen2.5vl:3b`.
+- It is smaller than the 7B model and works better on the 8GB MacBook Air.
+- After the Ollama runtime was fixed, `qwen2.5vl:3b` loaded and processed images.
+- `parse_images.py` now defaults to `qwen2.5vl:3b`.
+- Current model roles:
+  `qwen2.5vl:3b` parses images.
+  `qwen2.5:3b` validates extracted species names.
+
+## 12. First Successful Parse Run
+- Working command:
   `python3 parse_images.py --limit 5 --batch-size 1 --keep-raw --max-image-side 1000 --num-predict 256 --model qwen2.5vl:3b`
-- Result: run completed in about 3 minutes 32 seconds.
-- Wrote 5 rows to `output/output.csv`.
-- Parse status summary: 4 rows `ok`, 1 row `error`.
-- The error row was a JSON extraction failure: the model response did not contain a parseable JSON object.
-- No `species_name` values were extracted from these first 5 pages.
-- Observed reason: the first pages appear to be context/table pages rather than clean specimen-name rows.
+- The run completed in about 3 minutes 32 seconds.
+- It wrote 5 rows to `output/output.csv`.
+- Four rows had `parse_status=ok`.
+- One row had `parse_status=error`.
+- The error row failed because the model response did not contain a parseable JSON object.
+- None of the first five rows produced a `species_name`.
 
-## Validation pass on first five rows
-- Unloaded the vision model before running validation.
-- Ran:
+## 13. What The First Five Results Taught Us
+- The scripts can run locally after the Ollama fixes.
+- The model can process resized scans on this machine.
+- The first five scans appear to be vegetation-table or context pages, not specimen labels.
+- That explains why the specimen-style parser did not find useful `species_name` values.
+- The technical pipeline worked, but the extraction target was wrong.
+
+## 14. First Validation Run
+- We unloaded the vision model before validation so both models were not loaded at the same time.
+- Validation command:
   `python3 validate_names.py --limit 5 --batch-size 1 --keep-raw`
-- Because all 5 rows had blank `species_name`, the validator script did not need to call the text model.
-- It marked each row as low-confidence, `flag=true`, with note `No species name was extracted.`
-- Wrote 5 rows to `output/output_validated.csv`.
-- Validation status summary: all 5 rows `ok`.
-- This is expected behavior for blank species names: the script flags them for human review instead of pretending they are valid.
+- Since all `species_name` cells were blank, the validator skipped model calls.
+- It flagged all 5 rows for review.
+- `output/output_validated.csv` now has 5 validation rows.
+- All 5 rows have `flag=true` and note `No species name was extracted.`
+- This is correct behavior for blank names.
 
-## Validator model setup
-- Pulled the local text model `qwen2.5:3b` for future species-name validation.
-- Purpose: when later image pages produce actual species names, `validate_names.py` can use this model to check binomial format and fix obvious OCR errors.
-- Confirmed installed active models were `qwen2.5vl:3b` for image parsing and `qwen2.5:3b` for text validation.
+## 15. Current Output Meaning
+- `output/output.csv` proves the parser can call Ollama, process images, and save rows.
+- `output/output_validated.csv` proves the validator can read parser output and flag bad or missing names.
+- These files are useful smoke-test outputs.
+- They are not the final data format because the real target is table reconstruction, not one JSON record per image.
 
-## Unused model cleanup
-- Removed unused local model `qwen2.5vl:7b`.
-- Reason: it was too heavy/slow for this 8GB MacBook Air and is no longer the documented default.
-- Kept only the active pipeline models:
-  `qwen2.5vl:3b`
-  `qwen2.5:3b`
-- Updated README so it no longer tells the user to pull or run the removed 7B model.
-- Committed as `760ae8b Remove unused Ollama model`.
+## 16. New Understanding Of The Images
+- The images are structured phytosociological vegetation tables.
+- They are not herbarium specimen labels.
+- We should not extract one record per image with fields like collector, date, coordinates, and one `species_name`.
+- We need to reconstruct the visible table as CSV.
+- That means one CSV row per table row.
+- Table rows can include classification rows, plot metadata rows, environmental rows, species rows, footnotes, and localities.
 
-## Current script behavior
-- `parse_images.py` default model: `qwen2.5vl:3b`.
-- Parser supports:
-  `--limit` for testing a small number of images.
-  `--batch-size` for periodic CSV saves.
-  `--resume` for continuing a run without reprocessing completed files.
-  `--keep-raw` for saving raw model output in the CSV.
-  `--max-image-side` for temporary image resizing.
-  `--num-predict` for response length control.
-- `validate_names.py` default model: `qwen2.5:3b`.
-- Validator skips model calls when `species_name` is blank and directly flags those rows.
-- `download_drive.py` remains optional for importing Drive images into ignored `images/`.
-
-## Current output state
-- `output/output.csv` currently contains the first 5 parsed rows from the smoke test.
-- `output/output.csv` has 4 `ok` parse rows and 1 parse error row.
-- `output/output_validated.csv` currently contains the matching first 5 validation rows.
-- All 5 validation rows are flagged because no species names were extracted from the first pages.
-- These CSVs are intentionally tracked and pushed to GitHub.
-
-## Important extraction direction change
-- A new prompt note exists in `csv_parsing.md`.
-- It clarifies that these scans are structured ecological vegetation tables, not herbarium/specimen labels.
-- That means the current parser fields (`species_name`, `location`, `coordinates`, `collector`, etc.) are not the right final shape for the table images.
-- The prompt in `csv_parsing.md` asks the model to reconstruct each table as CSV with rows like `Class`, `Order`, `Alliance`, `Reference Number`, environmental rows, species rows, footnotes, and locality rows.
-- The required table-style header in that prompt is:
+## 17. Table Extraction Prompt
+- `csv_parsing_instructions.md` now describes the table-focused extraction target.
+- It tells the model to return CSV text, not JSON.
+- It uses this header:
   `row_label,plot_1,plot_2,plot_3,plot_4,plot_5,plot_6,plot_7,C,D`
-- Next likely pipeline improvement: update or add a parser mode that extracts one row per table row instead of one row per image.
+- It tells the model to preserve plot columns 1-7 plus summary columns C and D.
+- It tells the model to keep dots, x marks, abundance values, abbreviated taxon names, asterisks, footnotes, and locality text.
+- This prompt matches the actual Birks table images better than the original specimen-label JSON prompt.
 
-## GitHub workflow completed
-- All commits were made on `pipeline-setup`.
-- Pushed to `origin pipeline-setup`; `main` was not pushed directly.
-- Important commits:
-  `17f2b8a` scaffolded the pipeline.
-  `9c51e79` ignored local agent instruction files.
-  `af6c7ba` installed/recorded the first parsing model setup.
-  `2cf51bd` recorded the first-five parse work.
-  `760ae8b` removed the unused 7B model.
-  `3bed950` added operating notes.
+## 18. What Worked
+- The official Ollama app runtime fixed the missing `llama-server` problem.
+- Updating Ollama to runtime `0.30.7` fixed the stale-runtime crashes.
+- `qwen2.5vl:3b` can process resized scans locally.
+- Temporary image resizing keeps the original scans untouched.
+- Token limits help prevent extremely long model responses.
+- Natural sorting correctly selects `_1` through `_5`.
+- The parser records per-image errors instead of crashing the whole run.
+- The validator correctly flags blank species names instead of pretending they are valid.
 
-## Timeline rewrite
-- Replaced the vague short timeline with a detailed handoff log.
-- Included what was tried, what failed, what was changed, what commands mattered, current models, current CSV state, current table-extraction direction, and current git workflow.
+## 19. What Failed Or Was Not Good Enough
+- `qwen2-vl:7b` was not available under that exact Ollama tag.
+- Homebrew Ollama did not include the needed `llama-server` runtime.
+- The stale Ollama app runtime crashed newer Qwen vision models.
+- `qwen2.5vl:7b` was too slow and heavy for this 8GB machine.
+- Full-size scans were too slow for practical local testing.
+- The first JSON parser shape was wrong for these pages because it expected specimen-label fields.
+- The first five parsed rows did not produce species names because the data is table-based.
+
+## 20. Next Practical Step
+- Add or change the parser so it can run in table-extraction mode.
+- Use the prompt in `csv_parsing_instructions.md`.
+- Output table-shaped CSV rows with `row_label,plot_1,...,plot_7,C,D`.
+- Test on one image first, then the first five.
+- Keep `--max-image-side 1000` and `--num-predict` controls unless accuracy requires changing them.
+- After table extraction works, decide whether `validate_names.py` should validate taxon names inside `row_label`.
+
+## 21. Current Safe Command Pattern
+- Current JSON smoke-test command:
+  `python3 parse_images.py --limit 5 --batch-size 1 --keep-raw --max-image-side 1000 --num-predict 256`
+- Current validation smoke-test command:
+  `python3 validate_names.py --limit 5 --batch-size 1 --keep-raw`
+- Next real parser test should use the same local model and image controls, but switch the prompt and output format to the table CSV format from `csv_parsing_instructions.md`.
