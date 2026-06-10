@@ -44,12 +44,7 @@ ollama pull qwen2.5vl:3b
 ollama pull qwen2.5:3b
 ```
 
-`qwen2.5vl:3b` is the default vision model for this 8GB MacBook Air because it completed the first local smoke test. `qwen2.5vl:7b` is also usable as an optional slower, heavier vision model:
-
-```bash
-ollama pull qwen2.5vl:7b
-python3 parse_images.py --model qwen2.5vl:7b
-```
+`qwen2.5vl:3b` is the default vision model for this 8GB MacBook Air because it completed the first local smoke test.
 
 Put raw scans in `images/`. That folder and common image extensions are ignored by git.
 

@@ -17,8 +17,8 @@
 - Added natural image sorting, temporary resize, JSON mode, token caps, and fresh-run overwrite behavior.
 - Parsed first 5 of 96 images with `qwen2.5vl:3b`; output had 4 ok rows and 1 JSON parse error.
 - Ran validation; all 5 rows were flagged because no species names were extracted from the first pages.
-- Installed local models `qwen2.5vl:3b`, `qwen2.5vl:7b`, and `qwen2.5:3b`; committed as `2cf51bd`.
+- Installed local models for parsing/validation; committed as `2cf51bd`.
 
-## Timeline heading cleanup
-- Removed dates from timeline section headings.
-- Kept titles only for easier scanning.
+## Ollama model cleanup
+- Deleted unused local model `qwen2.5vl:7b`.
+- Kept active pipeline models `qwen2.5vl:3b` and `qwen2.5:3b`.
