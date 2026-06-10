@@ -15,7 +15,7 @@ from PIL import Image
 from tqdm import tqdm
 
 
-DEFAULT_MODEL = "qwen2-vl:7b"
+DEFAULT_MODEL = "qwen2.5vl:7b"
 DEFAULT_IMAGES_DIR = Path("images")
 DEFAULT_OUTPUT_PATH = Path("output/output.csv")
 SUPPORTED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".tif", ".tiff"}

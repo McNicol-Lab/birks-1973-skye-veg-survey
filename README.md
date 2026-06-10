@@ -40,7 +40,7 @@ pip install -r requirements.txt
 Ollama must be running before either model-backed script is started. Pull the models once:
 
 ```bash
-ollama pull qwen2-vl:7b
+ollama pull qwen2.5vl:7b
 ollama pull qwen2.5:3b
 ```
 
@@ -52,7 +52,7 @@ Run extraction first:
 python parse_images.py --resume --batch-size 50
 ```
 
-This reads supported images from `images/`, sends one image at a time to `qwen2-vl:7b`, asks for structured JSON, and writes rows to `output/output.csv`.
+This reads supported images from `images/`, sends one image at a time to `qwen2.5vl:7b`, asks for structured JSON, and writes rows to `output/output.csv`.
 
 Then run validation:
 

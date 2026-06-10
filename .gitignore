@@ -4,6 +4,7 @@ images/
 *.png
 *.tiff
 *.tif
+*.zip
 __pycache__/
 .env
 .DS_Store
