@@ -173,3 +173,15 @@
 - Current validation smoke-test command:
   `python3 validate_names.py --limit 5 --batch-size 1 --keep-raw`
 - Next real parser test should use the same local model and image controls, but switch the prompt and output format to the table CSV format from `csv_parsing_instructions.md`.
+
+## 22. First Table-CSV Batch
+- Updated `instructions.md` so future parsing work points to `csv_parsing_instructions.md` and prefers table-shaped CSV over one JSON record per image.
+- Updated `parse_images.py` so table mode is the default parser path.
+- Table mode reads `csv_parsing_instructions.md`, sends that prompt to `qwen2.5vl:3b`, parses returned CSV rows, and saves them with the header `row_label,plot_1,plot_2,plot_3,plot_4,plot_5,plot_6,plot_7,C,D`.
+- Kept old JSON mode available with `--mode json` in case we need to compare against the earlier specimen-style parser.
+- First table run failed because the sandbox could not reach local Ollama at `127.0.0.1:11434`.
+- Reran with local Ollama access allowed.
+- The model returned useful table rows but sometimes skipped the CSV header, so the parser was loosened to keep table-shaped rows even when the header line is missing.
+- Final first-five command:
+  `python3 parse_images.py --limit 5 --batch-size 1 --max-image-side 1000 --num-predict 2048 --mode table --prompt-file csv_parsing_instructions.md`
+- Final result: `output/output.csv` now has 150 table-shaped rows from the first 5 images and 0 parse-error rows.
