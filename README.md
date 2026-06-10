@@ -40,8 +40,15 @@ pip install -r requirements.txt
 Ollama must be running before either model-backed script is started. Pull the models once:
 
 ```bash
-ollama pull qwen2.5vl:7b
+ollama pull qwen2.5vl:3b
 ollama pull qwen2.5:3b
+```
+
+`qwen2.5vl:3b` is the default vision model for this 8GB MacBook Air because it completed the first local smoke test. `qwen2.5vl:7b` is also usable as an optional slower, heavier vision model:
+
+```bash
+ollama pull qwen2.5vl:7b
+python3 parse_images.py --model qwen2.5vl:7b
 ```
 
 Put raw scans in `images/`. That folder and common image extensions are ignored by git.
@@ -49,15 +56,15 @@ Put raw scans in `images/`. That folder and common image extensions are ignored 
 Run extraction first:
 
 ```bash
-python parse_images.py --resume --batch-size 50
+python3 parse_images.py --resume --batch-size 1 --max-image-side 1000 --num-predict 256
 ```
 
-This reads supported images from `images/`, sends one image at a time to `qwen2.5vl:7b`, asks for structured JSON, and writes rows to `output/output.csv`.
+This reads supported images from `images/`, sends one image at a time to `qwen2.5vl:3b`, asks for structured JSON, and writes rows to `output/output.csv`. `--max-image-side` makes a temporary resized copy for Ollama without changing the original scan. `--num-predict` caps the model response length so a full page scan cannot produce an oversized answer.
 
 Then run validation:
 
 ```bash
-python validate_names.py --resume --batch-size 50
+python3 validate_names.py --resume --batch-size 50
 ```
 
 This reads `output/output.csv`, sends one species name at a time to `qwen2.5:3b`, adds corrected-name and review columns, and writes `output/output_validated.csv`.
@@ -67,7 +74,7 @@ Do not run `parse_images.py` and `validate_names.py` at the same time on the 8GB
 Optionally download a Google Drive image folder into `images/`:
 
 ```bash
-python download_drive.py
+python3 download_drive.py
 ```
 
 ## Repository Structure (suggested)

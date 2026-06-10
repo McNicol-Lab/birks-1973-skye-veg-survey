@@ -5,6 +5,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
+import tempfile
 from json import JSONDecodeError
 from pathlib import Path
 from typing import Any
@@ -15,7 +17,7 @@ from PIL import Image
 from tqdm import tqdm
 
 
-DEFAULT_MODEL = "qwen2.5vl:7b"
+DEFAULT_MODEL = "qwen2.5vl:3b"
 DEFAULT_IMAGES_DIR = Path("images")
 DEFAULT_OUTPUT_PATH = Path("output/output.csv")
 SUPPORTED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".tif", ".tiff"}
@@ -70,6 +72,18 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--keep-raw", action="store_true")
+    parser.add_argument(
+        "--max-image-side",
+        type=int,
+        default=1600,
+        help="Resize a temporary copy so the longest image side is at most this many pixels. Use 0 to send originals.",
+    )
+    parser.add_argument(
+        "--num-predict",
+        type=int,
+        default=512,
+        help="Maximum response tokens Ollama can generate per image. Use 0 for the model default.",
+    )
     return parser
 
 
@@ -77,16 +91,39 @@ def find_images(images_dir: Path) -> list[Path]:
     if not images_dir.exists():
         raise FileNotFoundError(f"Images directory does not exist: {images_dir}")
 
-    return sorted(
+    images = [
         path
         for path in images_dir.rglob("*")
         if path.is_file() and path.suffix.lower() in SUPPORTED_EXTENSIONS
-    )
+    ]
+    return sorted(images, key=natural_sort_key)
 
 
-def check_image_can_open(image_path: Path) -> None:
+def natural_sort_key(path: Path) -> list[int | str]:
+    parts = re.split(r"(\d+)", str(path))
+    return [int(part) if part.isdigit() else part.lower() for part in parts]
+
+
+def prepare_image_for_ollama(image_path: Path, max_image_side: int) -> tuple[Path, Path | None]:
     with Image.open(image_path) as image:
-        image.verify()
+        image.load()
+
+        if max_image_side <= 0 or max(image.size) <= max_image_side:
+            return image_path, None
+
+        image.thumbnail((max_image_side, max_image_side), Image.Resampling.LANCZOS)
+        if image.mode not in {"RGB", "L"}:
+            image = image.convert("RGB")
+
+        with tempfile.NamedTemporaryFile(
+            prefix=f"{image_path.stem}_",
+            suffix=".jpg",
+            delete=False,
+        ) as temporary_file:
+            resized_path = Path(temporary_file.name)
+
+        image.save(resized_path, format="JPEG", quality=92)
+        return resized_path, resized_path
 
 
 def extract_json_object(text: str) -> dict[str, Any]:
@@ -113,15 +150,30 @@ def normalize_cell(value: Any) -> str:
     return str(value).strip()
 
 
-def parse_image(image_path: Path, model: str, keep_raw: bool) -> dict[str, str]:
-    check_image_can_open(image_path)
+def parse_image(
+    image_path: Path,
+    model: str,
+    keep_raw: bool,
+    max_image_side: int,
+    num_predict: int,
+) -> dict[str, str]:
+    ollama_image_path, temporary_path = prepare_image_for_ollama(image_path, max_image_side)
+    options = {"temperature": 0}
+    if num_predict > 0:
+        options["num_predict"] = num_predict
 
-    response = ollama.generate(
-        model=model,
-        prompt=EXTRACTION_PROMPT.strip(),
-        images=[str(image_path)],
-        options={"temperature": 0},
-    )
+    try:
+        response = ollama.generate(
+            model=model,
+            prompt=EXTRACTION_PROMPT.strip(),
+            images=[str(ollama_image_path)],
+            format="json",
+            options=options,
+        )
+    finally:
+        if temporary_path is not None:
+            temporary_path.unlink(missing_ok=True)
+
     raw_response = response.get("response", "")
     parsed = extract_json_object(raw_response)
 
@@ -163,7 +215,7 @@ def main() -> None:
     if args.limit is not None:
         images = images[: args.limit]
 
-    existing_frame = load_existing_rows(args.output)
+    existing_frame = load_existing_rows(args.output) if args.resume else pd.DataFrame(columns=OUTPUT_COLUMNS)
     rows = existing_frame.to_dict("records")
     completed = set(existing_frame["image_file"]) if args.resume else set()
 
@@ -175,7 +227,13 @@ def main() -> None:
 
     for index, image_path in enumerate(tqdm(pending_images, desc="Parsing images"), start=1):
         try:
-            row = parse_image(image_path, args.model, args.keep_raw)
+            row = parse_image(
+                image_path,
+                args.model,
+                args.keep_raw,
+                args.max_image_side,
+                args.num_predict,
+            )
         except Exception as error:
             row = {
                 "image_file": str(image_path),

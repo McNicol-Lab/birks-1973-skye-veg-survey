@@ -7,3 +7,7 @@
 ## 2026-06-10 — Ollama parsing model setup
 - Installed Ollama with Homebrew and started it as a background service.
 - Pulled qwen2.5vl:7b, updated parser defaults/docs, and ignored raw zip archives.
+
+## 2026-06-10 — First five Ollama parse
+- Replaced stale Ollama app runtime, added parser resize/token controls, and parsed/validated the first 5 images.
+- Used qwen2.5vl:3b with temporary 1000px image copies; pulled qwen2.5:3b for future name validation.
