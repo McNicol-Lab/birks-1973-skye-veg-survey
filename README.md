@@ -27,6 +27,49 @@ https://drive.google.com/drive/folders/18Zxvjh24F09ZtroSKzTkWnSDtKWyZoEm?usp=sha
 5. **Export** – Produce clean `.csv` files (e.g., `survey_sites.csv`, `species_composition.csv`, `environmental_variables.csv`).
 6. **Preliminary Analysis** – Clustering (e.g., hierarchical, k-means, NMDS) of vegetation survey sites.
 
+## Local Offline Pipeline
+
+This branch includes a local Ollama-based pipeline for converting image scans into tracked CSV files.
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+Ollama must be running before either model-backed script is started. Pull the models once:
+
+```bash
+ollama pull qwen2-vl:7b
+ollama pull qwen2.5:3b
+```
+
+Put raw scans in `images/`. That folder and common image extensions are ignored by git.
+
+Run extraction first:
+
+```bash
+python parse_images.py --resume --batch-size 50
+```
+
+This reads supported images from `images/`, sends one image at a time to `qwen2-vl:7b`, asks for structured JSON, and writes rows to `output/output.csv`.
+
+Then run validation:
+
+```bash
+python validate_names.py --resume --batch-size 50
+```
+
+This reads `output/output.csv`, sends one species name at a time to `qwen2.5:3b`, adds corrected-name and review columns, and writes `output/output_validated.csv`.
+
+Do not run `parse_images.py` and `validate_names.py` at the same time on the 8GB MacBook Air. Running them separately avoids loading both Ollama models together.
+
+Optionally download a Google Drive image folder into `images/`:
+
+```bash
+python download_drive.py
+```
+
 ## Repository Structure (suggested)
 
 ```text

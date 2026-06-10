@@ -1,0 +1,9 @@
+images/
+*.jpg
+*.jpeg
+*.png
+*.tiff
+*.tif
+__pycache__/
+.env
+.DS_Store
