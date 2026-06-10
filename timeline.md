@@ -1,5 +1,10 @@
 # Timeline
 
+## Project operating notes
+- Built for a local/offline Ollama pipeline on an 8GB M2 MacBook Air; do not run parser and validator models at the same time.
+- Raw scans stay in ignored `images/`; tracked CSV deliverables stay in `output/`.
+- All work is committed and pushed to `origin pipeline-setup`; `main` is not pushed directly.
+
 ## Pipeline scaffold
 - Added local Ollama extraction, species-name validation, optional Drive download, requirements, gitignore, and starter output CSVs.
 - Parser writes `output/output.csv`; validator writes `output/output_validated.csv`; zero-row dry runs passed without loading models.
@@ -26,3 +31,7 @@
 ## GitHub sync check
 - Confirmed branch is `pipeline-setup`, not `main`.
 - Pushed to `origin pipeline-setup`; GitHub was already up to date.
+
+## Timeline notes update
+- Added relevant operating notes from the original project brief.
+- Kept details focused on machine limits, data tracking, and branch workflow.
