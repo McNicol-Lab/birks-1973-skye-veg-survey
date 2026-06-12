@@ -160,19 +160,18 @@
 - The first five parsed rows did not produce species names because the data is table-based.
 
 ## 20. Next Practical Step
-- Add or change the parser so it can run in table-extraction mode.
+- Move from printed-table reconstruction to tidy research data.
 - Use the prompt in `csv_parsing_instructions.md`.
-- Output table-shaped CSV rows with `row_label,plot_1,...,plot_7,C,D`.
-- Test on one image first, then the first five.
-- Keep `--max-image-side 1000` and `--num-predict` controls unless accuracy requires changing them.
-- After table extraction works, decide whether `validate_names.py` should validate taxon names inside `row_label`.
+- Preferred outputs are linked CSVs: table metadata, plot/releve metadata, and long-format species observations.
+- `output/output.csv` should prioritize one species-by-releve observation per row.
+- Keep Domin values, presence flags, raw symbols, plot metadata, and table classification fields available for analysis.
 
 ## 21. Current Safe Command Pattern
-- Current JSON smoke-test command:
-  `python3 parse_images.py --limit 5 --batch-size 1 --keep-raw --max-image-side 1000 --num-predict 256`
-- Current validation smoke-test command:
-  `python3 validate_names.py --limit 5 --batch-size 1 --keep-raw`
-- Next real parser test should use the same local model and image controls, but switch the prompt and output format to the table CSV format from `csv_parsing_instructions.md`.
+- Current tidy parser command:
+  `python3 parse_images.py --limit 5 --batch-size 1 --max-image-side 1000 --num-predict 8192 --mode tidy --prompt-file csv_parsing_instructions.md`
+- Tidy mode writes `output/output.csv`, `output/plots.csv`, and `output/tables.csv`.
+- The older specimen-style parser is still available with `--mode json`.
+- The older printed-table reconstruction path is still available with `--mode table`, but it is not the preferred research output.
 
 ## 22. First Table-CSV Batch
 - Updated `instructions.md` so future parsing work points to `csv_parsing_instructions.md` and prefers table-shaped CSV over one JSON record per image.
@@ -185,3 +184,15 @@
 - Final first-five command:
   `python3 parse_images.py --limit 5 --batch-size 1 --max-image-side 1000 --num-predict 2048 --mode table --prompt-file csv_parsing_instructions.md`
 - Final result: `output/output.csv` now has 150 table-shaped rows from the first 5 images and 0 parse-error rows.
+
+## 23. Tidy Database Direction
+- User clarified the desired endpoint: a modern tidy database for Birks vegetation survey data, suitable for richness, abundance, composition, functional-group, mapping, and resurvey comparisons.
+- Updated `csv_parsing_instructions.md` so future extraction targets table metadata, plot/releve metadata, and long-format observations rather than a visual copy of the printed table.
+- Updated `parse_images.py` so default `--mode tidy` writes linked CSV outputs.
+- Tried a first-five tidy model run, but the model under-extracted badly: only 11 observations, 7 plots, 1 table, and several parse-error rows.
+- Replaced that weak test output with a clean prototype generated from the user-provided table transcription.
+- Current clean prototype outputs:
+  `output/output.csv` has 175 long-format species-by-releve observations.
+  `output/plots.csv` has 7 plot/releve metadata rows.
+  `output/tables.csv` has 1 table metadata row.
+- Important lesson: direct long-format extraction may need a staged process, likely printed-table extraction first and deterministic conversion to tidy tables second.

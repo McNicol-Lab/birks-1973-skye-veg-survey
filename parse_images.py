@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Extract botanical table data from local images with Ollama vision."""
+"""Extract botanical survey data from local images with Ollama vision."""
 
 from __future__ import annotations
 
@@ -8,9 +8,9 @@ import csv
 import json
 import re
 import tempfile
+from io import StringIO
 from json import JSONDecodeError
 from pathlib import Path
-from io import StringIO
 from typing import Any
 
 import ollama
@@ -22,21 +22,65 @@ from tqdm import tqdm
 DEFAULT_MODEL = "qwen2.5vl:3b"
 DEFAULT_IMAGES_DIR = Path("images")
 DEFAULT_OUTPUT_PATH = Path("output/output.csv")
+DEFAULT_PLOTS_OUTPUT_PATH = Path("output/plots.csv")
+DEFAULT_TABLES_OUTPUT_PATH = Path("output/tables.csv")
 DEFAULT_PROMPT_FILE = Path("csv_parsing_instructions.md")
 SUPPORTED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".tif", ".tiff"}
 
-JSON_OUTPUT_COLUMNS = [
+OBSERVATION_COLUMNS = [
+    "table_id",
     "image_file",
-    "species_name",
-    "location",
-    "coordinates",
-    "date",
-    "collector",
+    "class",
+    "order",
+    "alliance",
+    "association",
+    "releve_id",
+    "ref_code",
+    "map_reference",
+    "altitude_ft",
+    "altitude_m",
+    "aspect_deg",
+    "slope_deg",
+    "cover_pct",
+    "plot_area_m2",
+    "species",
+    "domin_value",
+    "presence_binary",
+    "raw_value",
+    "constancy_class",
+    "summary_value",
+    "total_species_reported",
+    "needs_review",
+    "note",
+]
+
+PLOT_COLUMNS = [
+    "table_id",
+    "image_file",
+    "releve_id",
+    "ref_code",
+    "map_reference",
+    "altitude_ft",
+    "altitude_m",
+    "aspect_deg",
+    "slope_deg",
+    "cover_pct",
+    "plot_area_m2",
+    "needs_review",
+    "note",
+]
+
+TABLE_COLUMNS = [
+    "table_id",
+    "image_file",
+    "class",
+    "order",
+    "alliance",
+    "association",
+    "n_releves",
+    "total_species_reported",
+    "mean_species_per_releve",
     "notes",
-    "other_visible_fields",
-    "parse_status",
-    "parse_error",
-    "raw_response",
 ]
 
 TABLE_OUTPUT_COLUMNS = [
@@ -50,6 +94,20 @@ TABLE_OUTPUT_COLUMNS = [
     "plot_7",
     "C",
     "D",
+]
+
+JSON_OUTPUT_COLUMNS = [
+    "image_file",
+    "species_name",
+    "location",
+    "coordinates",
+    "date",
+    "collector",
+    "notes",
+    "other_visible_fields",
+    "parse_status",
+    "parse_error",
+    "raw_response",
 ]
 
 JSON_EXTRACTION_PROMPT = """
@@ -79,22 +137,24 @@ Rules:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Parse local botanical images into output/output.csv using Ollama."
+        description="Parse local botanical images into CSV outputs using Ollama."
     )
     parser.add_argument("--images-dir", type=Path, default=DEFAULT_IMAGES_DIR)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT_PATH)
+    parser.add_argument("--plots-output", type=Path, default=DEFAULT_PLOTS_OUTPUT_PATH)
+    parser.add_argument("--tables-output", type=Path, default=DEFAULT_TABLES_OUTPUT_PATH)
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument(
         "--mode",
-        choices=("table", "json"),
-        default="table",
-        help="Use table mode for vegetation tables or json mode for older specimen-style extraction.",
+        choices=("tidy", "table", "json"),
+        default="tidy",
+        help="Use tidy mode for analysis-ready CSVs, table mode for printed-table CSV, or json mode for older specimen-style extraction.",
     )
     parser.add_argument(
         "--prompt-file",
         type=Path,
         default=DEFAULT_PROMPT_FILE,
-        help="Prompt file used in table mode.",
+        help="Prompt file used in tidy and table modes.",
     )
     parser.add_argument("--batch-size", type=int, default=50)
     parser.add_argument("--limit", type=int, default=None)
@@ -109,7 +169,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--num-predict",
         type=int,
-        default=512,
+        default=2048,
         help="Maximum response tokens Ollama can generate per image. Use 0 for the model default.",
     )
     return parser
@@ -177,6 +237,8 @@ def extract_json_object(text: str) -> dict[str, Any]:
 def normalize_cell(value: Any) -> str:
     if value is None:
         return ""
+    if isinstance(value, bool):
+        return "true" if value else "false"
     if isinstance(value, str):
         return value.strip()
     if isinstance(value, (dict, list)):
@@ -256,6 +318,144 @@ def call_ollama_image(
     return response.get("response", "")
 
 
+def normalize_observation(
+    raw_row: dict[str, Any],
+    table_row: dict[str, str],
+    plots_by_releve: dict[str, dict[str, str]],
+    image_file: str,
+) -> dict[str, str]:
+    releve_id = normalize_cell(raw_row.get("releve_id"))
+    plot_row = plots_by_releve.get(releve_id, {})
+    raw_value = normalize_cell(raw_row.get("raw_value"))
+    domin_value = normalize_cell(raw_row.get("domin_value"))
+    presence = normalize_cell(raw_row.get("presence_binary"))
+    if not presence:
+        presence = "0" if raw_value == "." or domin_value == "." else "1"
+
+    return {
+        "table_id": table_row["table_id"],
+        "image_file": image_file,
+        "class": table_row["class"],
+        "order": table_row["order"],
+        "alliance": table_row["alliance"],
+        "association": table_row["association"],
+        "releve_id": releve_id,
+        "ref_code": plot_row.get("ref_code", ""),
+        "map_reference": plot_row.get("map_reference", ""),
+        "altitude_ft": plot_row.get("altitude_ft", ""),
+        "altitude_m": plot_row.get("altitude_m", ""),
+        "aspect_deg": plot_row.get("aspect_deg", ""),
+        "slope_deg": plot_row.get("slope_deg", ""),
+        "cover_pct": plot_row.get("cover_pct", ""),
+        "plot_area_m2": plot_row.get("plot_area_m2", ""),
+        "species": normalize_cell(raw_row.get("species")),
+        "domin_value": domin_value,
+        "presence_binary": presence,
+        "raw_value": raw_value,
+        "constancy_class": normalize_cell(raw_row.get("constancy_class")),
+        "summary_value": normalize_cell(raw_row.get("summary_value")),
+        "total_species_reported": table_row["total_species_reported"],
+        "needs_review": normalize_cell(raw_row.get("needs_review")),
+        "note": normalize_cell(raw_row.get("note")),
+    }
+
+
+def normalize_plot(
+    raw_row: dict[str, Any],
+    table_id: str,
+    image_file: str,
+) -> dict[str, str]:
+    return {
+        "table_id": table_id,
+        "image_file": image_file,
+        "releve_id": normalize_cell(raw_row.get("releve_id")),
+        "ref_code": normalize_cell(raw_row.get("ref_code")),
+        "map_reference": normalize_cell(raw_row.get("map_reference")),
+        "altitude_ft": normalize_cell(raw_row.get("altitude_ft")),
+        "altitude_m": normalize_cell(raw_row.get("altitude_m")),
+        "aspect_deg": normalize_cell(raw_row.get("aspect_deg")),
+        "slope_deg": normalize_cell(raw_row.get("slope_deg")),
+        "cover_pct": normalize_cell(raw_row.get("cover_pct")),
+        "plot_area_m2": normalize_cell(raw_row.get("plot_area_m2")),
+        "needs_review": normalize_cell(raw_row.get("needs_review")),
+        "note": normalize_cell(raw_row.get("note")),
+    }
+
+
+def normalize_table(
+    raw_metadata: dict[str, Any],
+    image_file: str,
+) -> dict[str, str]:
+    return {
+        "table_id": normalize_cell(raw_metadata.get("table_id")),
+        "image_file": image_file,
+        "class": normalize_cell(raw_metadata.get("class")),
+        "order": normalize_cell(raw_metadata.get("order")),
+        "alliance": normalize_cell(raw_metadata.get("alliance")),
+        "association": normalize_cell(raw_metadata.get("association")),
+        "n_releves": normalize_cell(raw_metadata.get("n_releves")),
+        "total_species_reported": normalize_cell(raw_metadata.get("total_species_reported")),
+        "mean_species_per_releve": normalize_cell(raw_metadata.get("mean_species_per_releve")),
+        "notes": normalize_cell(raw_metadata.get("notes")),
+    }
+
+
+def parse_tidy_image(
+    image_path: Path,
+    model: str,
+    prompt: str,
+    max_image_side: int,
+    num_predict: int,
+) -> tuple[list[dict[str, str]], list[dict[str, str]], list[dict[str, str]]]:
+    raw_response = call_ollama_image(
+        image_path=image_path,
+        model=model,
+        prompt=prompt,
+        max_image_side=max_image_side,
+        num_predict=num_predict,
+        response_format="json",
+    )
+    parsed = extract_json_object(raw_response)
+
+    metadata = parsed.get("table_metadata", {})
+    if not isinstance(metadata, dict):
+        metadata = {}
+
+    table_row = normalize_table(metadata, str(image_path))
+    table_id = table_row["table_id"] or image_path.stem
+
+    raw_plots = parsed.get("plots", [])
+    if not isinstance(raw_plots, list):
+        raw_plots = []
+    plot_rows = [
+        normalize_plot(plot, table_id, str(image_path))
+        for plot in raw_plots
+        if isinstance(plot, dict)
+    ]
+    plots_by_releve = {
+        plot["releve_id"]: plot
+        for plot in plot_rows
+        if plot["releve_id"]
+    }
+
+    raw_observations = parsed.get("observations", [])
+    if not isinstance(raw_observations, list):
+        raw_observations = []
+    observation_rows = [
+        normalize_observation(observation, table_row, plots_by_releve, str(image_path))
+        for observation in raw_observations
+        if isinstance(observation, dict)
+    ]
+
+    if not plot_rows and not observation_rows:
+        raise ValueError("The model response did not contain plots or observations.")
+
+    if not table_row["table_id"]:
+        table_row["table_id"] = table_id
+
+    return [table_row], plot_rows, observation_rows
+
+
 def parse_json_image(
     image_path: Path,
     model: str,
@@ -273,7 +473,7 @@ def parse_json_image(
     )
     parsed = extract_json_object(raw_response)
 
-    row = {
+    return {
         "image_file": str(image_path),
         "species_name": normalize_cell(parsed.get("species_name")),
         "location": normalize_cell(parsed.get("location")),
@@ -286,7 +486,6 @@ def parse_json_image(
         "parse_error": "",
         "raw_response": raw_response if keep_raw else "",
     }
-    return row
 
 
 def parse_table_image(
@@ -322,87 +521,188 @@ def save_rows(rows: list[dict[str, str]], output_path: Path, columns: list[str])
     frame.to_csv(output_path, index=False)
 
 
-def main() -> None:
-    args = build_parser().parse_args()
-    images = find_images(args.images_dir)
-    if args.limit is not None:
-        images = images[: args.limit]
+def error_observation(image_path: Path, error: Exception) -> dict[str, str]:
+    return {
+        "table_id": image_path.stem,
+        "image_file": str(image_path),
+        "class": "",
+        "order": "",
+        "alliance": "",
+        "association": "",
+        "releve_id": "",
+        "ref_code": "",
+        "map_reference": "",
+        "altitude_ft": "",
+        "altitude_m": "",
+        "aspect_deg": "",
+        "slope_deg": "",
+        "cover_pct": "",
+        "plot_area_m2": "",
+        "species": "PARSE_ERROR",
+        "domin_value": "",
+        "presence_binary": "",
+        "raw_value": "",
+        "constancy_class": "",
+        "summary_value": "",
+        "total_species_reported": "",
+        "needs_review": "true",
+        "note": str(error),
+    }
 
-    output_columns = TABLE_OUTPUT_COLUMNS if args.mode == "table" else JSON_OUTPUT_COLUMNS
-    table_prompt = read_prompt(args.prompt_file) if args.mode == "table" else ""
 
-    existing_frame = (
-        load_existing_rows(args.output, output_columns)
+def run_tidy_mode(args: argparse.Namespace, images: list[Path]) -> None:
+    prompt = read_prompt(args.prompt_file)
+    observation_rows = (
+        load_existing_rows(args.output, OBSERVATION_COLUMNS).to_dict("records")
         if args.resume
-        else pd.DataFrame(columns=output_columns)
+        else []
     )
-    rows = existing_frame.to_dict("records")
-    completed = set(existing_frame["image_file"]) if args.resume and args.mode == "json" else set()
+    plot_rows = (
+        load_existing_rows(args.plots_output, PLOT_COLUMNS).to_dict("records")
+        if args.resume
+        else []
+    )
+    table_rows = (
+        load_existing_rows(args.tables_output, TABLE_COLUMNS).to_dict("records")
+        if args.resume
+        else []
+    )
+    completed = {
+        row["image_file"]
+        for row in table_rows
+        if row.get("image_file")
+    } if args.resume else set()
 
     pending_images = [image for image in images if str(image) not in completed]
-    if not pending_images:
-        save_rows(rows, args.output, output_columns)
-        print(f"No new images to parse. Wrote {len(rows)} rows to {args.output}.")
-        return
-
     for index, image_path in enumerate(tqdm(pending_images, desc="Parsing images"), start=1):
         try:
-            if args.mode == "table":
-                image_rows = parse_table_image(
+            image_tables, image_plots, image_observations = parse_tidy_image(
+                image_path,
+                args.model,
+                prompt,
+                args.max_image_side,
+                args.num_predict,
+            )
+            table_rows.extend(image_tables)
+            plot_rows.extend(image_plots)
+            observation_rows.extend(image_observations)
+        except Exception as error:
+            observation_rows.append(error_observation(image_path, error))
+
+        if index % args.batch_size == 0:
+            save_rows(observation_rows, args.output, OBSERVATION_COLUMNS)
+            save_rows(plot_rows, args.plots_output, PLOT_COLUMNS)
+            save_rows(table_rows, args.tables_output, TABLE_COLUMNS)
+
+    save_rows(observation_rows, args.output, OBSERVATION_COLUMNS)
+    save_rows(plot_rows, args.plots_output, PLOT_COLUMNS)
+    save_rows(table_rows, args.tables_output, TABLE_COLUMNS)
+    print(
+        f"Wrote {len(observation_rows)} observations to {args.output}, "
+        f"{len(plot_rows)} plots to {args.plots_output}, "
+        f"and {len(table_rows)} tables to {args.tables_output}."
+    )
+
+
+def run_table_mode(args: argparse.Namespace, images: list[Path]) -> None:
+    prompt = read_prompt(args.prompt_file)
+    rows = (
+        load_existing_rows(args.output, TABLE_OUTPUT_COLUMNS).to_dict("records")
+        if args.resume
+        else []
+    )
+
+    for index, image_path in enumerate(tqdm(images, desc="Parsing images"), start=1):
+        try:
+            rows.extend(
+                parse_table_image(
                     image_path,
                     args.model,
-                    table_prompt,
+                    prompt,
                     args.max_image_side,
                     args.num_predict,
                 )
-                rows.extend(image_rows)
-            else:
-                row = parse_json_image(
+            )
+        except Exception as error:
+            rows.append(
+                {
+                    "row_label": f"Parse error: {image_path.name}",
+                    "plot_1": str(error),
+                    "plot_2": "",
+                    "plot_3": "",
+                    "plot_4": "",
+                    "plot_5": "",
+                    "plot_6": "",
+                    "plot_7": "",
+                    "C": "",
+                    "D": "",
+                }
+            )
+
+        if index % args.batch_size == 0:
+            save_rows(rows, args.output, TABLE_OUTPUT_COLUMNS)
+
+    save_rows(rows, args.output, TABLE_OUTPUT_COLUMNS)
+    print(f"Wrote {len(rows)} rows to {args.output}.")
+
+
+def run_json_mode(args: argparse.Namespace, images: list[Path]) -> None:
+    existing_frame = (
+        load_existing_rows(args.output, JSON_OUTPUT_COLUMNS)
+        if args.resume
+        else pd.DataFrame(columns=JSON_OUTPUT_COLUMNS)
+    )
+    rows = existing_frame.to_dict("records")
+    completed = set(existing_frame["image_file"]) if args.resume else set()
+    pending_images = [image for image in images if str(image) not in completed]
+
+    for index, image_path in enumerate(tqdm(pending_images, desc="Parsing images"), start=1):
+        try:
+            rows.append(
+                parse_json_image(
                     image_path,
                     args.model,
                     args.keep_raw,
                     args.max_image_side,
                     args.num_predict,
                 )
-                rows.append(row)
+            )
         except Exception as error:
-            if args.mode == "table":
-                rows.append(
-                    {
-                        "row_label": f"Parse error: {image_path.name}",
-                        "plot_1": str(error),
-                        "plot_2": "",
-                        "plot_3": "",
-                        "plot_4": "",
-                        "plot_5": "",
-                        "plot_6": "",
-                        "plot_7": "",
-                        "C": "",
-                        "D": "",
-                    }
-                )
-            else:
-                rows.append(
-                    {
-                        "image_file": str(image_path),
-                        "species_name": "",
-                        "location": "",
-                        "coordinates": "",
-                        "date": "",
-                        "collector": "",
-                        "notes": "",
-                        "other_visible_fields": "",
-                        "parse_status": "error",
-                        "parse_error": str(error),
-                        "raw_response": "",
-                    }
-                )
+            rows.append(
+                {
+                    "image_file": str(image_path),
+                    "species_name": "",
+                    "location": "",
+                    "coordinates": "",
+                    "date": "",
+                    "collector": "",
+                    "notes": "",
+                    "other_visible_fields": "",
+                    "parse_status": "error",
+                    "parse_error": str(error),
+                    "raw_response": "",
+                }
+            )
 
         if index % args.batch_size == 0:
-            save_rows(rows, args.output, output_columns)
+            save_rows(rows, args.output, JSON_OUTPUT_COLUMNS)
 
-    save_rows(rows, args.output, output_columns)
+    save_rows(rows, args.output, JSON_OUTPUT_COLUMNS)
     print(f"Wrote {len(rows)} rows to {args.output}.")
+
+
+def main() -> None:
+    args = build_parser().parse_args()
+    images = find_images(args.images_dir)
+    if args.limit is not None:
+        images = images[: args.limit]
+
+    if args.mode == "tidy":
+        run_tidy_mode(args, images)
+    elif args.mode == "table":
+        run_table_mode(args, images)
+    else:
+        run_json_mode(args, images)
 
 
 if __name__ == "__main__":

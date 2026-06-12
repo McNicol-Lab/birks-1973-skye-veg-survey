@@ -1,86 +1,100 @@
 You are extracting data from scanned ecological vegetation tables, not herbarium specimen labels.
 
-The image contains a structured phytosociological vegetation table from a flora/vegetation publication. Do NOT extract fields such as collector, date, coordinates, specimen location, or species_name as a single record. Instead, reconstruct the table as tabular data.
+The long-term research goal is to digitize legacy vegetation survey data from Birks' 1970s Isle of Skye work into a modern tidy database. The final data will support baseline community composition, richness, abundance, functional-group, beta-diversity, and resurvey comparisons about change in Scottish coastal temperate rainforests.
 
-Your task is to extract all visible table content into CSV format.
+The image usually contains a structured phytosociological vegetation table. Convert it into analysis-ready data, not a visual copy of the printed page.
 
-IMPORTANT OUTPUT RULES:
-1. Return ONLY valid CSV text.
-2. Do not include explanations, markdown, code fences, JSON, or comments.
-3. Preserve the table structure.
-4. The first column must contain row labels such as Class, Order, Alliance, Association, Reference Number, Map Reference, Altitude, species names, etc.
-5. The next columns must represent relevé / plot columns 1–7.
-6. Include the final summary columns C and D when visible.
-7. Use empty cells only when the table has no corresponding value.
-8. Preserve dots "." as absence values.
-9. Preserve "x" or "✗" presence marks exactly as visible; use "x" if the mark is unclear.
-10. Preserve abundance/cover numbers exactly as printed, including decimals.
-11. Preserve abbreviated species names exactly as printed, for example "R. heterostichum", "F. tamarisi", "O. tartarea", "P. saxatilis".
-12. Preserve asterisks before species names, for example "*Parmelia glabratula".
-13. Do not invent missing data.
-14. Do not summarize the table.
-15. Do not collapse all species into one field.
-16. Do not output one row per image. Output one row per table row.
+Return exactly one JSON object and no markdown, comments, or code fences.
 
-Use this exact CSV header:
+Use this exact JSON structure:
 
-row_label,plot_1,plot_2,plot_3,plot_4,plot_5,plot_6,plot_7,C,D
+{
+  "table_metadata": {
+    "table_id": "",
+    "class": "",
+    "order": "",
+    "alliance": "",
+    "association": "",
+    "n_releves": "",
+    "total_species_reported": "",
+    "mean_species_per_releve": "",
+    "notes": ""
+  },
+  "plots": [
+    {
+      "releve_id": "",
+      "ref_code": "",
+      "map_reference": "",
+      "altitude_ft": "",
+      "altitude_m": "",
+      "aspect_deg": "",
+      "slope_deg": "",
+      "cover_pct": "",
+      "plot_area_m2": "",
+      "needs_review": false,
+      "note": ""
+    }
+  ],
+  "observations": [
+    {
+      "releve_id": "",
+      "species": "",
+      "domin_value": "",
+      "presence_binary": "",
+      "raw_value": "",
+      "constancy_class": "",
+      "summary_value": "",
+      "needs_review": false,
+      "note": ""
+    }
+  ]
+}
 
-The table has a metadata/header section followed by environmental rows followed by species rows. Extract them all using the same CSV structure.
+Table metadata rules:
+- table_id should be the printed table number if visible, for example "Table 4.20". If no table number is visible, use the clearest short table identifier visible in the image.
+- Extract class, order, alliance, and association from the phytosociological classification block.
+- n_releves is the number of plot/releve columns in the table, usually 7.
+- total_species_reported comes from rows like "Total number of species (38)".
+- mean_species_per_releve should be calculated only if it is explicitly reported or obvious from a visible summary. Otherwise leave it blank.
+- notes should contain page-level uncertainty only.
 
-For multi-line row labels:
-- “Reference Number” may span multiple printed lines. Combine the values under the same row label when they belong to the same field.
-- If a field has two stacked values per plot, create separate rows with clear labels, for example:
-  Reference Number part 1
-  Reference Number part 2
-  Map Reference part 1
-  Map Reference part 2
+Plot rules:
+- Output one plot object per releve column.
+- releve_id should be "1", "2", "3", etc.
+- Combine stacked reference-number cells into one ref_code when possible. Example: top row "B68" plus lower row "155" becomes "B68-155".
+- Combine stacked map-reference cells into one map_reference when possible. Example: "504" plus "446" becomes "504446" unless the printed style clearly uses a separator.
+- Keep altitude_ft when the table says feet.
+- Fill altitude_m only if metres are printed or the conversion is obvious and reliable. If converted from feet, round to the nearest whole metre and mention conversion in note.
+- Preserve aspect_deg, slope_deg, cover_pct, and plot_area_m2 exactly as printed.
+- If a value is missing, unclear, or possibly misaligned, leave the value blank if needed, set needs_review to true, and explain briefly in note.
 
-For the upper classification block, place the classification value in plot_1 and leave the remaining plot columns blank. Example:
-Class,EPIPETRETEA LICHENOSA,,,,,,,,
-Order,RHIZOCARPETALIA,,,,,,,,
-Alliance,Parmelion saxatilis,,,,,,,,
-Association,Hedwigia ciliata-Parmelia saxatilis,,,,,,,,
+Observation rules:
+- Output one observation object per species-by-releve cell.
+- Do not output metadata rows as observations.
+- species must be the taxon name exactly as printed unless there is an obvious OCR correction.
+- Preserve abbreviated taxa such as "R. heterostichum", "F. tamarisi", "O. tartarea", and "P. saxatilis".
+- Preserve leading asterisks in names such as "*Parmelia glabratula".
+- domin_value should contain the Domin-scale value for that species in that releve.
+- Treat "." as absence: domin_value ".", raw_value ".", presence_binary "0".
+- Treat "+" as low presence: domin_value "+", raw_value "+", presence_binary "1".
+- Treat integers as Domin values: domin_value should be "1", "2", "3", etc., raw_value should match, and presence_binary should be "1".
+- Treat "x" or "✗" as presence marks when they appear in a species-by-releve cell: domin_value should be "x", raw_value should be "x", and presence_binary should be "1".
+- constancy_class should come from summary column C when visible, for example "II", "III", "V".
+- summary_value should come from summary column D when visible, for example "0.5", "5.3", or "6.3".
+- If a species name or value is uncertain, preserve the visible text, set needs_review to true, and explain briefly in note.
 
-For numbered plot heading rows, use:
-row_label,plot_1,plot_2,plot_3,plot_4,plot_5,plot_6,plot_7,C,D
-Plot number,1,2,3,4,5,6,7,,
+Scientific-name cleaning rules:
+- Correct only obvious OCR errors when the printed word clearly supports the correction.
+- Prefer "Parmelia" over "Parmedia" when the surrounding table clearly uses the lichen genus Parmelia.
+- Prefer "Rhizocarpetalia" over "RHIZOGARPETALIA" when extracting the order.
+- Prefer "Hedwigia ciliata" over "Hedrigia ciliata".
+- Prefer "Dicranum scoparium" over "Dicranum seoparium" if the printed text matches scoparium.
+- Prefer "Scapania gracilis" over "Soopania gracilis" if the printed text matches Scapania.
+- Do not modernize taxonomy unless explicitly printed. Historical names are useful and should be preserved.
 
-For environmental rows, extract rows such as:
-Reference Number
-Map Reference
-Altitude (feet)
-Aspect (degrees)
-Slope (degrees)
-Cover (per cent)
-Plot area (square metres)
-
-For species rows, the row_label must be the taxon name exactly as printed, and the plot columns must contain the values shown beneath plots 1–7, followed by C and D where visible.
-
-At the bottom, include:
-Total number of species (38)
-
-Also extract footnotes or locality text as extra rows after the main table, using row_label values such as:
-Footnote
-Additional species in list 2
-Additional species in list 3
-Additional species in list 4
-Additional species in list 5
-Additional species in list 6
-Localities
-
-When extracting scientific names:
-- Be careful with common OCR confusions:
-  - Parmelia, not Parmedia unless clearly printed otherwise.
-  - Rhizocarpetalia, not PHIZOARPETALIA.
-  - Hedwigia ciliata, not Hedrigia ciliata.
-  - Dicranum scoparium, not seoparium, if the printed word matches scoparium.
-  - Scapania gracilis, not Soopania gracilis, if the printed word matches Scapania.
-- However, do not over-correct uncertain names. Preserve the visible text when unsure.
-
-Quality check before final output:
-- The CSV should have many rows, not just 1 row per image.
-- The species section should include all visible taxa.
-- Columns must align with plots 1–7 plus C and D.
-- The row “Total number of species (38)” should have values under plots 1–7.
-- No JSON fields such as raw_response, parse_status, collector, coordinates, or notes should appear.
+Quality checks before final output:
+- The response must be valid JSON.
+- The response must contain plots and observations.
+- Observations should be long format, not a species-by-releve matrix.
+- A table with 25 species and 7 releves should produce roughly 175 observation objects.
+- Do not output CSV text directly. The Python script will convert this JSON into CSV files.
