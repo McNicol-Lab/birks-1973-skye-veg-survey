@@ -205,3 +205,7 @@
 ## 25. Output CSV Explanation
 - Reviewed `output/output.csv`, `output/plots.csv`, `output/tables.csv`, and `output/output_validated.csv`.
 - Explained how each file maps to the vegetation survey project: table metadata, plot metadata, long-format species observations, and legacy validation output.
+
+## 26. Notes And Setup Docs
+- Added `notes.md` with a plain-English explanation of all output CSV files and how they connect to the research project.
+- Added `setup.md` as the current Mac/Windows setup and run guide; future process changes should replace obsolete steps there.
