@@ -31,6 +31,18 @@ https://drive.google.com/drive/folders/18Zxvjh24F09ZtroSKzTkWnSDtKWyZoEm?usp=sha
 
 This branch includes a local Ollama-based pipeline for converting image scans into tracked CSV files.
 
+Current folder layout:
+
+```text
+scripts/      Python pipeline scripts
+prompts/      Model extraction prompts
+docs/         Human-readable setup notes and output explanations
+images/       Raw local scans, ignored by git
+output/       Tracked CSV outputs
+```
+
+For detailed Mac/Windows setup instructions, read `docs/setup.md`.
+
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
@@ -48,28 +60,34 @@ ollama pull qwen2.5:3b
 
 Put raw scans in `images/`. That folder and common image extensions are ignored by git.
 
-Run extraction first:
+Run tidy extraction first:
 
 ```bash
-python3 parse_images.py --resume --batch-size 1 --max-image-side 1000 --num-predict 256
+python3 scripts/parse_images.py --limit 5 --batch-size 1 --max-image-side 1000 --num-predict 8192 --mode tidy --prompt-file prompts/csv_parsing_instructions.md
 ```
 
-This reads supported images from `images/`, sends one image at a time to `qwen2.5vl:3b`, asks for structured JSON, and writes rows to `output/output.csv`. `--max-image-side` makes a temporary resized copy for Ollama without changing the original scan. `--num-predict` caps the model response length so a full page scan cannot produce an oversized answer.
+This reads supported images from `images/`, sends one image at a time to `qwen2.5vl:3b`, uses `prompts/csv_parsing_instructions.md`, and writes tidy CSV outputs:
 
-Then run validation:
+- `output/output.csv` for long-format species observations
+- `output/plots.csv` for plot/releve metadata
+- `output/tables.csv` for table-level metadata
+
+`--max-image-side` makes a temporary resized copy for Ollama without changing the original scan. `--num-predict` caps the model response length.
+
+The older species-name validation script is still available, but it was built for the earlier specimen-label workflow:
 
 ```bash
-python3 validate_names.py --resume --batch-size 50
+python3 scripts/validate_names.py --resume --batch-size 50
 ```
 
-This reads `output/output.csv`, sends one species name at a time to `qwen2.5:3b`, adds corrected-name and review columns, and writes `output/output_validated.csv`.
+Future validation should target the `species` column in `output/output.csv`.
 
-Do not run `parse_images.py` and `validate_names.py` at the same time on the 8GB MacBook Air. Running them separately avoids loading both Ollama models together.
+Do not run `scripts/parse_images.py` and `scripts/validate_names.py` at the same time on the 8GB MacBook Air. Running them separately avoids loading both Ollama models together.
 
 Optionally download a Google Drive image folder into `images/`:
 
 ```bash
-python3 download_drive.py
+python3 scripts/download_drive.py
 ```
 
 ## Repository Structure (suggested)

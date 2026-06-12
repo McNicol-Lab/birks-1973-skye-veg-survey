@@ -40,7 +40,7 @@ DEFAULT_IMAGES_DIR = Path("images")
 DEFAULT_OUTPUT_PATH = Path("output/output.csv")
 DEFAULT_PLOTS_OUTPUT_PATH = Path("output/plots.csv")
 DEFAULT_TABLES_OUTPUT_PATH = Path("output/tables.csv")
-DEFAULT_PROMPT_FILE = Path("csv_parsing_instructions.md")
+DEFAULT_PROMPT_FILE = Path("prompts/csv_parsing_instructions.md")
 SUPPORTED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".tif", ".tiff"}
 
 # Columns for the preferred long-format observation CSV.
@@ -701,9 +701,9 @@ def run_tidy_mode(args: argparse.Namespace, images: list[Path]) -> None:
 
         # Batch saving protects progress during long runs.
         if index % args.batch_size == 0:
-            save_rows(observation_rows, args.output, OBSERVATION_COLUMNS)
-            save_rows(plot_rows, args.plots_output, PLOT_COLUMNS)
-            save_rows(table_rows, args.tables_output, TABLE_COLUMNS)
+            save_rows(observation_rows, args.output, OBSERVATION_COLUMNS) # type: ignore
+            save_rows(plot_rows, args.plots_output, PLOT_COLUMNS) # type: ignore
+            save_rows(table_rows, args.tables_output, TABLE_COLUMNS) # type: ignore
 
     save_rows(observation_rows, args.output, OBSERVATION_COLUMNS)
     save_rows(plot_rows, args.plots_output, PLOT_COLUMNS)

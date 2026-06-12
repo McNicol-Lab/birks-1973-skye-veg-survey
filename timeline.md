@@ -168,7 +168,7 @@
 
 ## 21. Current Safe Command Pattern
 - Current tidy parser command:
-  `python3 parse_images.py --limit 5 --batch-size 1 --max-image-side 1000 --num-predict 8192 --mode tidy --prompt-file csv_parsing_instructions.md`
+  `python3 scripts/parse_images.py --limit 5 --batch-size 1 --max-image-side 1000 --num-predict 8192 --mode tidy --prompt-file prompts/csv_parsing_instructions.md`
 - Tidy mode writes `output/output.csv`, `output/plots.csv`, and `output/tables.csv`.
 - The older specimen-style parser is still available with `--mode json`.
 - The older printed-table reconstruction path is still available with `--mode table`, but it is not the preferred research output.
@@ -207,5 +207,10 @@
 - Explained how each file maps to the vegetation survey project: table metadata, plot metadata, long-format species observations, and legacy validation output.
 
 ## 26. Notes And Setup Docs
-- Added `notes.md` with a plain-English explanation of all output CSV files and how they connect to the research project.
-- Added `setup.md` as the current Mac/Windows setup and run guide; future process changes should replace obsolete steps there.
+- Added `docs/notes.md` with a plain-English explanation of all output CSV files and how they connect to the research project.
+- Added `docs/setup.md` as the current Mac/Windows setup and run guide; future process changes should replace obsolete steps there.
+
+## 27. Folder Structure Cleanup
+- Reorganized project files into clearer folders: `scripts/` for Python scripts, `prompts/` for model prompts, and `docs/` for human-readable notes/setup.
+- Kept `images/` for ignored raw scans, `output/` for tracked CSVs, and root-level `instructions.md`/`timeline.md` for agent workflow.
+- Updated current commands and docs to use `scripts/parse_images.py` and `prompts/csv_parsing_instructions.md`.

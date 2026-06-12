@@ -14,6 +14,31 @@ The current target output is not a visual copy of the printed table. The target 
 - `output/plots.csv`: plot/releve metadata.
 - `output/tables.csv`: table-level metadata.
 
+## Current Folder Structure
+
+```text
+scripts/
+  Python scripts that run the pipeline.
+
+prompts/
+  Model prompt files that tell Ollama what to extract.
+
+docs/
+  Human-readable setup notes, explanations, and project notes.
+
+images/
+  Raw local scan images. This folder is ignored by git.
+
+output/
+  CSV outputs. These files are tracked by git.
+
+timeline.md
+  Running project history.
+
+instructions.md
+  Local agent instructions. This file is ignored by git.
+```
+
 ## Required Tools
 
 Install these first:
@@ -132,13 +157,13 @@ The `images/` folder is ignored by git. Do not commit raw scans.
 Run a small test first:
 
 ```bash
-python3 parse_images.py --limit 5 --batch-size 1 --max-image-side 1000 --num-predict 8192 --mode tidy --prompt-file csv_parsing_instructions.md
+python3 scripts/parse_images.py --limit 5 --batch-size 1 --max-image-side 1000 --num-predict 8192 --mode tidy --prompt-file prompts/csv_parsing_instructions.md
 ```
 
 On Windows, if `python3` does not work, use:
 
 ```powershell
-py parse_images.py --limit 5 --batch-size 1 --max-image-side 1000 --num-predict 8192 --mode tidy --prompt-file csv_parsing_instructions.md
+py scripts/parse_images.py --limit 5 --batch-size 1 --max-image-side 1000 --num-predict 8192 --mode tidy --prompt-file prompts/csv_parsing_instructions.md
 ```
 
 What this command does:
@@ -146,7 +171,7 @@ What this command does:
 - Reads the first 5 images from `images/`.
 - Uses natural numeric sorting so image 2 comes before image 10.
 - Sends one image at a time to `qwen2.5vl:3b`.
-- Uses `csv_parsing_instructions.md` as the extraction prompt.
+- Uses `prompts/csv_parsing_instructions.md` as the extraction prompt.
 - Resizes a temporary copy of large images to a maximum side of 1000 pixels.
 - Allows a longer model response with `--num-predict 8192`.
 - Writes tidy CSV outputs.
@@ -220,12 +245,12 @@ Use this for:
 
 ## Validation Status
 
-`validate_names.py` currently belongs to the older specimen-name workflow.
+`scripts/validate_names.py` currently belongs to the older specimen-name workflow.
 
 The older validation command is:
 
 ```bash
-python3 validate_names.py --resume --batch-size 50
+python3 scripts/validate_names.py --resume --batch-size 50
 ```
 
 But the preferred tidy output stores species names in:
@@ -241,13 +266,13 @@ So future validation should be redesigned to validate the `species` column in `o
 If you have a Google Drive folder link for raw images, run:
 
 ```bash
-python3 download_drive.py
+python3 scripts/download_drive.py
 ```
 
 Windows:
 
 ```powershell
-py download_drive.py
+py scripts/download_drive.py
 ```
 
 The script asks for the Drive folder link and downloads files into `images/`.
