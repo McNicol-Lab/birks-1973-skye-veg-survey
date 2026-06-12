@@ -201,3 +201,7 @@
 - Added beginner-friendly comments and docstrings to `parse_images.py`, `validate_names.py`, and `download_drive.py`.
 - Explained script modes, output CSV shapes, Ollama calls, image resizing, model response parsing, resume behavior, batch saving, validation flow, and Drive downloads.
 - Verified all scripts still compile with `python3 -m py_compile parse_images.py validate_names.py download_drive.py`.
+
+## 25. Output CSV Explanation
+- Reviewed `output/output.csv`, `output/plots.csv`, `output/tables.csv`, and `output/output_validated.csv`.
+- Explained how each file maps to the vegetation survey project: table metadata, plot metadata, long-format species observations, and legacy validation output.
