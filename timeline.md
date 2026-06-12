@@ -196,3 +196,8 @@
   `output/plots.csv` has 7 plot/releve metadata rows.
   `output/tables.csv` has 1 table metadata row.
 - Important lesson: direct long-format extraction may need a staged process, likely printed-table extraction first and deterministic conversion to tidy tables second.
+
+## 24. Code Explanation Comments
+- Added beginner-friendly comments and docstrings to `parse_images.py`, `validate_names.py`, and `download_drive.py`.
+- Explained script modes, output CSV shapes, Ollama calls, image resizing, model response parsing, resume behavior, batch saving, validation flow, and Drive downloads.
+- Verified all scripts still compile with `python3 -m py_compile parse_images.py validate_names.py download_drive.py`.

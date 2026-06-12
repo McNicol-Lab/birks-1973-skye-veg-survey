@@ -1,5 +1,19 @@
 #!/usr/bin/env python3
-"""Extract botanical survey data from local images with Ollama vision."""
+"""Extract botanical survey data from local images with Ollama vision.
+
+This is the main digitizing script.
+
+It can run in three modes:
+- tidy: the preferred mode. It writes analysis-ready CSVs:
+  output/output.csv for species observations,
+  output/plots.csv for plot/releve metadata,
+  output/tables.csv for table-level metadata.
+- table: an older helper mode. It tries to copy the printed table shape.
+- json: an older specimen-label mode. It extracts one JSON record per image.
+
+The current research goal is tidy mode because it is easiest to analyze later
+with pandas, ordination, richness calculations, and resurvey comparisons.
+"""
 
 from __future__ import annotations
 
@@ -19,6 +33,8 @@ from PIL import Image
 from tqdm import tqdm
 
 
+# These defaults let the script run without typing long paths every time.
+# The model is the smaller local vision model that works on the 8GB MacBook Air.
 DEFAULT_MODEL = "qwen2.5vl:3b"
 DEFAULT_IMAGES_DIR = Path("images")
 DEFAULT_OUTPUT_PATH = Path("output/output.csv")
@@ -27,6 +43,8 @@ DEFAULT_TABLES_OUTPUT_PATH = Path("output/tables.csv")
 DEFAULT_PROMPT_FILE = Path("csv_parsing_instructions.md")
 SUPPORTED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".tif", ".tiff"}
 
+# Columns for the preferred long-format observation CSV.
+# One row means: one species in one plot/releve.
 OBSERVATION_COLUMNS = [
     "table_id",
     "image_file",
@@ -54,6 +72,8 @@ OBSERVATION_COLUMNS = [
     "note",
 ]
 
+# Columns for plot/releve metadata.
+# These describe each plot once, instead of repeating them by species.
 PLOT_COLUMNS = [
     "table_id",
     "image_file",
@@ -70,6 +90,8 @@ PLOT_COLUMNS = [
     "note",
 ]
 
+# Columns for table-level metadata.
+# These describe one printed table or association page.
 TABLE_COLUMNS = [
     "table_id",
     "image_file",
@@ -83,6 +105,8 @@ TABLE_COLUMNS = [
     "notes",
 ]
 
+# Columns for the older printed-table reconstruction mode.
+# This keeps the visual table shape but is less useful for analysis.
 TABLE_OUTPUT_COLUMNS = [
     "row_label",
     "plot_1",
@@ -96,6 +120,8 @@ TABLE_OUTPUT_COLUMNS = [
     "D",
 ]
 
+# Columns for the older specimen-style JSON mode.
+# This is kept for comparison but is not the current target.
 JSON_OUTPUT_COLUMNS = [
     "image_file",
     "species_name",
@@ -136,6 +162,12 @@ Rules:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Define all command-line options for the script.
+
+    argparse turns terminal flags like --limit 5 into Python values.
+    Keeping these options here makes the script reusable for small tests,
+    resumed runs, and full-batch processing.
+    """
     parser = argparse.ArgumentParser(
         description="Parse local botanical images into CSV outputs using Ollama."
     )
@@ -176,6 +208,11 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def find_images(images_dir: Path) -> list[Path]:
+    """Find all supported image files and return them in natural order.
+
+    Natural order matters because filenames like image_10 should come after
+    image_2, not immediately after image_1.
+    """
     if not images_dir.exists():
         raise FileNotFoundError(f"Images directory does not exist: {images_dir}")
 
@@ -188,23 +225,33 @@ def find_images(images_dir: Path) -> list[Path]:
 
 
 def natural_sort_key(path: Path) -> list[int | str]:
+    """Split a filename into text and number pieces for human-style sorting."""
     parts = re.split(r"(\d+)", str(path))
     return [int(part) if part.isdigit() else part.lower() for part in parts]
 
 
 def read_prompt(prompt_file: Path) -> str:
+    """Load the extraction prompt that tells the model what to return."""
     if not prompt_file.exists():
         raise FileNotFoundError(f"Prompt file does not exist: {prompt_file}")
     return prompt_file.read_text(encoding="utf-8").strip()
 
 
 def prepare_image_for_ollama(image_path: Path, max_image_side: int) -> tuple[Path, Path | None]:
+    """Create a smaller temporary image for Ollama when the scan is large.
+
+    The original file is never changed. If the image is already small enough,
+    the original path is returned. If it is too large, the function saves a
+    temporary JPEG and returns that path plus the same path as a cleanup target.
+    """
     with Image.open(image_path) as image:
         image.load()
 
+        # A max side of 0 means "do not resize".
         if max_image_side <= 0 or max(image.size) <= max_image_side:
             return image_path, None
 
+        # thumbnail keeps the aspect ratio, so the page is not stretched.
         image.thumbnail((max_image_side, max_image_side), Image.Resampling.LANCZOS)
         if image.mode not in {"RGB", "L"}:
             image = image.convert("RGB")
@@ -221,6 +268,12 @@ def prepare_image_for_ollama(image_path: Path, max_image_side: int) -> tuple[Pat
 
 
 def extract_json_object(text: str) -> dict[str, Any]:
+    """Pull the first valid JSON object out of a model response.
+
+    Local models sometimes add text before or after JSON. This scans forward
+    until it finds a parseable object, instead of failing on the first extra
+    character.
+    """
     decoder = json.JSONDecoder()
     for index, character in enumerate(text):
         if character != "{":
@@ -235,6 +288,7 @@ def extract_json_object(text: str) -> dict[str, Any]:
 
 
 def normalize_cell(value: Any) -> str:
+    """Convert any extracted value into a clean string for CSV writing."""
     if value is None:
         return ""
     if isinstance(value, bool):
@@ -247,6 +301,7 @@ def normalize_cell(value: Any) -> str:
 
 
 def clean_csv_response(text: str) -> str:
+    """Remove markdown wrappers and keep the CSV-looking part of a response."""
     cleaned = text.strip()
     if cleaned.startswith("```"):
         cleaned = re.sub(r"^```(?:csv)?\s*", "", cleaned, flags=re.IGNORECASE)
@@ -260,6 +315,11 @@ def clean_csv_response(text: str) -> str:
 
 
 def parse_table_csv(text: str) -> list[dict[str, str]]:
+    """Parse older printed-table CSV output into row dictionaries.
+
+    This mode is kept because it can be useful for debugging OCR alignment.
+    It is not the preferred final research format.
+    """
     cleaned = clean_csv_response(text)
     reader = csv.reader(StringIO(cleaned))
     rows = list(reader)
@@ -295,6 +355,12 @@ def call_ollama_image(
     num_predict: int,
     response_format: str | None = None,
 ) -> str:
+    """Send one image and one prompt to Ollama, then return the model text.
+
+    This is the only function that talks directly to Ollama. Keeping the
+    Ollama call in one place makes resizing, token limits, and cleanup easier
+    to reason about.
+    """
     ollama_image_path, temporary_path = prepare_image_for_ollama(image_path, max_image_side)
     options = {"temperature": 0}
     if num_predict > 0:
@@ -312,6 +378,7 @@ def call_ollama_image(
     try:
         response = ollama.generate(**request)
     finally:
+        # Delete temporary resized images even if Ollama errors.
         if temporary_path is not None:
             temporary_path.unlink(missing_ok=True)
 
@@ -324,11 +391,20 @@ def normalize_observation(
     plots_by_releve: dict[str, dict[str, str]],
     image_file: str,
 ) -> dict[str, str]:
+    """Turn one model observation into one clean output/output.csv row.
+
+    The model only has to provide the species, releve id, and cell value.
+    This function adds table metadata and plot metadata so every observation
+    row is self-contained and easy to analyze later.
+    """
     releve_id = normalize_cell(raw_row.get("releve_id"))
     plot_row = plots_by_releve.get(releve_id, {})
     raw_value = normalize_cell(raw_row.get("raw_value"))
     domin_value = normalize_cell(raw_row.get("domin_value"))
     presence = normalize_cell(raw_row.get("presence_binary"))
+
+    # If the model forgets the presence flag, infer it from the extracted cell.
+    # "." means absent. Anything else is treated as present unless reviewed.
     if not presence:
         presence = "0" if raw_value == "." or domin_value == "." else "1"
 
@@ -365,6 +441,7 @@ def normalize_plot(
     table_id: str,
     image_file: str,
 ) -> dict[str, str]:
+    """Turn one model plot object into one output/plots.csv row."""
     return {
         "table_id": table_id,
         "image_file": image_file,
@@ -386,6 +463,7 @@ def normalize_table(
     raw_metadata: dict[str, Any],
     image_file: str,
 ) -> dict[str, str]:
+    """Turn table-level model metadata into one output/tables.csv row."""
     return {
         "table_id": normalize_cell(raw_metadata.get("table_id")),
         "image_file": image_file,
@@ -407,6 +485,12 @@ def parse_tidy_image(
     max_image_side: int,
     num_predict: int,
 ) -> tuple[list[dict[str, str]], list[dict[str, str]], list[dict[str, str]]]:
+    """Parse one image into table rows, plot rows, and observation rows.
+
+    Tidy mode asks the model for JSON because JSON is easier to validate than
+    raw CSV when the answer contains nested data. The script then converts the
+    JSON into normal CSV files.
+    """
     raw_response = call_ollama_image(
         image_path=image_path,
         model=model,
@@ -424,6 +508,7 @@ def parse_tidy_image(
     table_row = normalize_table(metadata, str(image_path))
     table_id = table_row["table_id"] or image_path.stem
 
+    # Plot rows are normalized first so observation rows can inherit plot data.
     raw_plots = parsed.get("plots", [])
     if not isinstance(raw_plots, list):
         raw_plots = []
@@ -438,6 +523,7 @@ def parse_tidy_image(
         if plot["releve_id"]
     }
 
+    # Observation rows are long format: one species in one releve per row.
     raw_observations = parsed.get("observations", [])
     if not isinstance(raw_observations, list):
         raw_observations = []
@@ -450,6 +536,7 @@ def parse_tidy_image(
     if not plot_rows and not observation_rows:
         raise ValueError("The model response did not contain plots or observations.")
 
+    # If no printed table id was found, use the image filename as a stable id.
     if not table_row["table_id"]:
         table_row["table_id"] = table_id
 
@@ -463,6 +550,11 @@ def parse_json_image(
     max_image_side: int,
     num_predict: int,
 ) -> dict[str, str]:
+    """Run the older specimen-style parser for one image.
+
+    This is not the current research path, but keeping it available makes it
+    possible to compare against earlier tests.
+    """
     raw_response = call_ollama_image(
         image_path=image_path,
         model=model,
@@ -495,6 +587,7 @@ def parse_table_image(
     max_image_side: int,
     num_predict: int,
 ) -> list[dict[str, str]]:
+    """Run the older printed-table reconstruction parser for one image."""
     raw_response = call_ollama_image(
         image_path=image_path,
         model=model,
@@ -506,12 +599,18 @@ def parse_table_image(
 
 
 def load_existing_rows(output_path: Path, columns: list[str]) -> pd.DataFrame:
+    """Load a previous CSV, or return an empty frame with the expected columns."""
     if not output_path.exists():
         return pd.DataFrame(columns=columns)
     return pd.read_csv(output_path, dtype=str).fillna("")
 
 
 def save_rows(rows: list[dict[str, str]], output_path: Path, columns: list[str]) -> None:
+    """Save rows to CSV in a stable column order.
+
+    Stable column order keeps the output easy to compare in git and easy to
+    read in spreadsheet tools.
+    """
     output_path.parent.mkdir(parents=True, exist_ok=True)
     frame = pd.DataFrame(rows)
     for column in columns:
@@ -522,6 +621,7 @@ def save_rows(rows: list[dict[str, str]], output_path: Path, columns: list[str])
 
 
 def error_observation(image_path: Path, error: Exception) -> dict[str, str]:
+    """Create a reviewable output row when one image fails to parse."""
     return {
         "table_id": image_path.stem,
         "image_file": str(image_path),
@@ -551,7 +651,16 @@ def error_observation(image_path: Path, error: Exception) -> dict[str, str]:
 
 
 def run_tidy_mode(args: argparse.Namespace, images: list[Path]) -> None:
+    """Run the preferred analysis-ready extraction workflow.
+
+    This writes three linked files:
+    - output/output.csv for long-format species observations
+    - output/plots.csv for plot/releve metadata
+    - output/tables.csv for table-level metadata
+    """
     prompt = read_prompt(args.prompt_file)
+
+    # Resume mode starts from existing CSVs instead of starting over.
     observation_rows = (
         load_existing_rows(args.output, OBSERVATION_COLUMNS).to_dict("records")
         if args.resume
@@ -587,8 +696,10 @@ def run_tidy_mode(args: argparse.Namespace, images: list[Path]) -> None:
             plot_rows.extend(image_plots)
             observation_rows.extend(image_observations)
         except Exception as error:
+            # Keep going when one image fails. The error row tells us what to review.
             observation_rows.append(error_observation(image_path, error))
 
+        # Batch saving protects progress during long runs.
         if index % args.batch_size == 0:
             save_rows(observation_rows, args.output, OBSERVATION_COLUMNS)
             save_rows(plot_rows, args.plots_output, PLOT_COLUMNS)
@@ -605,6 +716,7 @@ def run_tidy_mode(args: argparse.Namespace, images: list[Path]) -> None:
 
 
 def run_table_mode(args: argparse.Namespace, images: list[Path]) -> None:
+    """Run the older printed-table reconstruction workflow."""
     prompt = read_prompt(args.prompt_file)
     rows = (
         load_existing_rows(args.output, TABLE_OUTPUT_COLUMNS).to_dict("records")
@@ -624,6 +736,7 @@ def run_table_mode(args: argparse.Namespace, images: list[Path]) -> None:
                 )
             )
         except Exception as error:
+            # Store parse errors in the CSV so a bad page does not stop the batch.
             rows.append(
                 {
                     "row_label": f"Parse error: {image_path.name}",
@@ -647,6 +760,7 @@ def run_table_mode(args: argparse.Namespace, images: list[Path]) -> None:
 
 
 def run_json_mode(args: argparse.Namespace, images: list[Path]) -> None:
+    """Run the older specimen-label extraction workflow."""
     existing_frame = (
         load_existing_rows(args.output, JSON_OUTPUT_COLUMNS)
         if args.resume
@@ -668,6 +782,7 @@ def run_json_mode(args: argparse.Namespace, images: list[Path]) -> None:
                 )
             )
         except Exception as error:
+            # Store the error next to the image filename for later review.
             rows.append(
                 {
                     "image_file": str(image_path),
@@ -692,6 +807,7 @@ def run_json_mode(args: argparse.Namespace, images: list[Path]) -> None:
 
 
 def main() -> None:
+    """Read command-line arguments, find images, and dispatch to one mode."""
     args = build_parser().parse_args()
     images = find_images(args.images_dir)
     if args.limit is not None:

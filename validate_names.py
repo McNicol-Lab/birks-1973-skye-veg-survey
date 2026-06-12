@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Validate botanical species names in output/output.csv with Ollama text model."""
+"""Validate botanical species names with a local Ollama text model.
+
+This script was built for the earlier specimen-style parser, where
+output/output.csv had a species_name column. It is still useful if we later
+extract or normalize species names, but the current tidy pipeline mostly keeps
+species names inside the long-format observations table.
+"""
 
 from __future__ import annotations
 
@@ -14,10 +20,12 @@ import pandas as pd
 from tqdm import tqdm
 
 
+# This is the smaller local text model used only for name checking.
 DEFAULT_MODEL = "qwen2.5:3b"
 DEFAULT_INPUT_PATH = Path("output/output.csv")
 DEFAULT_OUTPUT_PATH = Path("output/output_validated.csv")
 
+# These columns are appended to the input CSV during validation.
 VALIDATION_COLUMNS = [
     "corrected_name",
     "confidence",
@@ -30,6 +38,8 @@ VALIDATION_COLUMNS = [
 
 VALID_CONFIDENCE = {"high", "medium", "low"}
 
+# Prompt template sent to the local model for one species name.
+# The model is asked to return JSON so the script can parse it reliably.
 VALIDATION_PROMPT_TEMPLATE = """
 You are an expert botanist validating OCR output from geo-botanical field records.
 
@@ -62,6 +72,7 @@ Rules:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Define command-line options for validation runs."""
     parser = argparse.ArgumentParser(
         description="Validate botanical names from output/output.csv using Ollama."
     )
@@ -76,6 +87,11 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def extract_json_object(text: str) -> dict[str, Any]:
+    """Find and parse the first JSON object in a model response.
+
+    Models sometimes include extra text. This function searches for JSON
+    instead of assuming the whole response is perfectly formatted.
+    """
     decoder = json.JSONDecoder()
     for index, character in enumerate(text):
         if character != "{":
@@ -90,6 +106,7 @@ def extract_json_object(text: str) -> dict[str, Any]:
 
 
 def normalize_cell(value: Any) -> str:
+    """Convert any value into a clean string for CSV output."""
     if value is None:
         return ""
     if isinstance(value, str):
@@ -100,6 +117,7 @@ def normalize_cell(value: Any) -> str:
 
 
 def normalize_flag(value: Any) -> str:
+    """Convert model booleans or yes/no strings into true/false text."""
     if isinstance(value, bool):
         return "true" if value else "false"
     text = normalize_cell(value).lower()
@@ -107,6 +125,7 @@ def normalize_flag(value: Any) -> str:
 
 
 def build_prompt(row: pd.Series) -> str:
+    """Fill the validation prompt with values from one CSV row."""
     return VALIDATION_PROMPT_TEMPLATE.format(
         species_name=normalize_cell(row.get("species_name")),
         location=normalize_cell(row.get("location")),
@@ -119,6 +138,11 @@ def build_prompt(row: pd.Series) -> str:
 
 
 def validate_name(row: pd.Series, model: str, keep_raw: bool) -> dict[str, str]:
+    """Validate one species name and return validation columns.
+
+    If no species name exists, the model is not called. The row is flagged
+    directly because a blank name always needs human review.
+    """
     species_name = normalize_cell(row.get("species_name"))
     if not species_name:
         return {
@@ -155,18 +179,25 @@ def validate_name(row: pd.Series, model: str, keep_raw: bool) -> dict[str, str]:
 
 
 def load_input(input_path: Path) -> pd.DataFrame:
+    """Load the CSV that needs species-name validation."""
     if not input_path.exists():
         raise FileNotFoundError(f"Input CSV does not exist: {input_path}")
     return pd.read_csv(input_path, dtype=str).fillna("")
 
 
 def load_previous_output(output_path: Path) -> pd.DataFrame | None:
+    """Load a previous validation output when resume mode is used."""
     if not output_path.exists():
         return None
     return pd.read_csv(output_path, dtype=str).fillna("")
 
 
 def apply_resume_data(frame: pd.DataFrame, previous: pd.DataFrame | None) -> pd.DataFrame:
+    """Copy completed validation results from a previous output CSV.
+
+    This lets a long validation job continue after an interruption without
+    revalidating rows that already succeeded.
+    """
     for column in VALIDATION_COLUMNS:
         if column not in frame.columns:
             frame[column] = ""
@@ -186,11 +217,13 @@ def apply_resume_data(frame: pd.DataFrame, previous: pd.DataFrame | None) -> pd.
 
 
 def save_frame(frame: pd.DataFrame, output_path: Path) -> None:
+    """Save the full validation CSV."""
     output_path.parent.mkdir(parents=True, exist_ok=True)
     frame.to_csv(output_path, index=False)
 
 
 def main() -> None:
+    """Run validation for each row in the input CSV."""
     args = build_parser().parse_args()
     frame = load_input(args.input)
     if args.limit is not None:
@@ -206,6 +239,7 @@ def main() -> None:
         try:
             validation = validate_name(frame.loc[index], args.model, args.keep_raw)
         except Exception as error:
+            # If one model call fails, keep the row and mark it for review.
             validation = {
                 "corrected_name": "",
                 "confidence": "low",
