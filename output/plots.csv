@@ -1,8 +1,8 @@
-table_id,image_file,releve_id,ref_code,map_reference,altitude_ft,altitude_m,aspect_deg,slope_deg,cover_pct,plot_area_m2,needs_review,note
-Hedwigia ciliata-Parmelia saxatilis,manual_prototype_from_user_paste,1,B68-155,504446,200,61,180,10,85,0.5,false,
-Hedwigia ciliata-Parmelia saxatilis,manual_prototype_from_user_paste,2,B68-156,504446,200,61,135,40,90,1,false,
-Hedwigia ciliata-Parmelia saxatilis,manual_prototype_from_user_paste,3,B68-157,508448,150,46,135,15,80,1,false,
-Hedwigia ciliata-Parmelia saxatilis,manual_prototype_from_user_paste,4,B68-190,156555,400,122,270,10,90,1,false,
-Hedwigia ciliata-Parmelia saxatilis,manual_prototype_from_user_paste,5,B67-88A,512198,200,61,270,10,90,1,false,
-Hedwigia ciliata-Parmelia saxatilis,manual_prototype_from_user_paste,6,B66-3,430190,350,107,180,15,80,1,false,
-Hedwigia ciliata-Parmelia saxatilis,manual_prototype_from_user_paste,7,B68-94A,524627,200,61,270,10,75,0.5,false,
+table_id,image_file,releve_id,ref_code,map_reference,latitude,longitude,altitude_ft,altitude_m,aspect_deg,slope_deg,cover_pct,plot_area_m2,needs_review,note
+Hedwigia ciliata-Parmelia saxatilis,manual_prototype_from_user_paste,1,B68-155,504446,,,200,61,180,10,85,0.5,false,
+Hedwigia ciliata-Parmelia saxatilis,manual_prototype_from_user_paste,2,B68-156,504446,,,200,61,135,40,90,1,false,
+Hedwigia ciliata-Parmelia saxatilis,manual_prototype_from_user_paste,3,B68-157,508448,,,150,46,135,15,80,1,false,
+Hedwigia ciliata-Parmelia saxatilis,manual_prototype_from_user_paste,4,B68-190,156555,,,400,122,270,10,90,1,false,
+Hedwigia ciliata-Parmelia saxatilis,manual_prototype_from_user_paste,5,B67-88A,512198,,,200,61,270,10,90,1,false,
+Hedwigia ciliata-Parmelia saxatilis,manual_prototype_from_user_paste,6,B66-3,430190,,,350,107,180,15,80,1,false,
+Hedwigia ciliata-Parmelia saxatilis,manual_prototype_from_user_paste,7,B68-94A,524627,,,200,61,270,10,75,0.5,false,

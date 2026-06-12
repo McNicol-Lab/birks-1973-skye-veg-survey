@@ -11,7 +11,7 @@ This is the main species-observation file.
 Current shape:
 
 - 175 rows
-- 24 columns
+- 26 columns
 
 Each row means:
 
@@ -32,7 +32,8 @@ Important columns:
 - `class`, `order`, `alliance`, `association`: phytosociological classification.
 - `releve_id`: plot number, such as `1`, `2`, or `3`.
 - `ref_code`: original field/reference code, such as `B68-155`.
-- `map_reference`: old map/grid reference.
+- `map_reference`: old map/grid reference from the printed table.
+- `latitude`, `longitude`: decimal-degree coordinates for mapping when printed directly or safely converted from the grid reference.
 - `altitude_ft`, `altitude_m`, `aspect_deg`, `slope_deg`, `cover_pct`, `plot_area_m2`: environmental data for that plot.
 - `species`: species name.
 - `domin_value`: extracted Domin-scale abundance value.
@@ -89,7 +90,7 @@ This is the plot/releve metadata file.
 Current shape:
 
 - 7 rows
-- 13 columns
+- 15 columns
 
 Each row means:
 
@@ -103,6 +104,7 @@ Important columns:
 - `releve_id`: plot number.
 - `ref_code`: original field/reference code.
 - `map_reference`: original map/grid reference.
+- `latitude`, `longitude`: decimal-degree coordinates for GIS/maps. Leave blank until the map reference can be safely converted.
 - `altitude_ft`, `altitude_m`: elevation.
 - `aspect_deg`: slope direction.
 - `slope_deg`: slope steepness.

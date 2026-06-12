@@ -69,7 +69,7 @@ python3 scripts/parse_images.py --limit 5 --batch-size 1 --max-image-side 1000 -
 This reads supported images from `images/`, sends one image at a time to `qwen2.5vl:3b`, uses `prompts/csv_parsing_instructions.md`, and writes tidy CSV outputs:
 
 - `output/output.csv` for long-format species observations
-- `output/plots.csv` for plot/releve metadata
+- `output/plots.csv` for plot/releve metadata, including map references and latitude/longitude fields when available
 - `output/tables.csv` for table-level metadata
 
 `--max-image-side` makes a temporary resized copy for Ollama without changing the original scan. `--num-predict` caps the model response length.

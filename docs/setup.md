@@ -218,6 +218,7 @@ one plot/releve
 Use this for:
 
 - map references
+- latitude/longitude coordinates when available or safely converted
 - altitude
 - aspect
 - slope

@@ -25,6 +25,8 @@ Use this exact JSON structure:
       "releve_id": "",
       "ref_code": "",
       "map_reference": "",
+      "latitude": "",
+      "longitude": "",
       "altitude_ft": "",
       "altitude_m": "",
       "aspect_deg": "",
@@ -63,6 +65,8 @@ Plot rules:
 - releve_id should be "1", "2", "3", etc.
 - Combine stacked reference-number cells into one ref_code when possible. Example: top row "B68" plus lower row "155" becomes "B68-155".
 - Combine stacked map-reference cells into one map_reference when possible. Example: "504" plus "446" becomes "504446" unless the printed style clearly uses a separator.
+- latitude and longitude should be decimal degrees when they are printed or when the map/grid reference can be converted safely.
+- Do not guess latitude or longitude from a partial map_reference. If the printed map_reference lacks the needed grid-square context, leave latitude and longitude blank, set needs_review to true, and explain that coordinate conversion needs manual grid-reference confirmation.
 - Keep altitude_ft when the table says feet.
 - Fill altitude_m only if metres are printed or the conversion is obvious and reliable. If converted from feet, round to the nearest whole metre and mention conversion in note.
 - Preserve aspect_deg, slope_deg, cover_pct, and plot_area_m2 exactly as printed.
