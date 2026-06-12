@@ -1,0 +1,65 @@
+image_file,species_name,location,coordinates,date,collector,notes,other_visible_fields,parse_status,parse_error,raw_response,corrected_name,confidence,flag,note,validation_status,validation_error,validation_raw_response
+images/Birks-HJB-1973-Present-Flora-Veg-Skye_1.png,,,,,,,"{""Alliance"": ""Parmelion saxatilis"", ""Association"": ""Hedwigia ciliata-Parmelion saxatilis"", ""Class"": ""EPIPETRETEA LICHENOSA"", ""Order"": ""PHIZOARPETALIA""}",ok,,"{
+  ""species_name"": """",
+  ""location"": """",
+  ""coordinates"": """",
+  ""date"": """",
+  ""collector"": """",
+  ""notes"": """",
+  ""other_visible_fields"": {
+    ""Class"": ""EPIPETRETEA LICHENOSA"",
+    ""Order"": ""PHIZOARPETALIA"",
+    ""Alliance"": ""Parmelion saxatilis"",
+    ""Association"": ""Hedwigia ciliata-Parmelion saxatilis""
+  }
+}",,low,true,No species name was extracted.,ok,,
+images/Birks-HJB-1973-Present-Flora-Veg-Skye_2.png,,,,,,,,error,The model response did not contain a JSON object.,,,low,true,No species name was extracted.,ok,,
+images/Birks-HJB-1973-Present-Flora-Veg-Skye_3.png,,,,,,,"{""Alliance"": ""Caulicentris"", ""Association"": ""Asplenium morrison-Crimnia maritima"", ""Class"": ""Asplenietea rupestris"", ""Order"": ""Potentillales"", ""Table Name"": ""Table 4.3"", ""Table Title"": ""Present Flora and Vegetation""}",ok,,"{
+  ""species_name"": """",
+  ""location"": """",
+  ""coordinates"": """",
+  ""date"": """",
+  ""collector"": """",
+  ""notes"": """",
+  ""other_visible_fields"": {
+    ""Table Title"": ""Present Flora and Vegetation"",
+    ""Table Name"": ""Table 4.3"",
+    ""Class"": ""Asplenietea rupestris"",
+    ""Order"": ""Potentillales"",
+    ""Alliance"": ""Caulicentris"",
+    ""Association"": ""Asplenium morrison-Crimnia maritima""
+  }
+}",,low,true,No species name was extracted.,ok,,
+images/Birks-HJB-1973-Present-Flora-Veg-Skye_4.png,,,,,,"Table 4-4 contains a detailed vegetation data for Asplenietea ruprestris and Potentillietalia caulescentis. The table includes various facies, reference numbers, map references, altitude, aspect, slope, cover percentage, plot area, and species abundance.","{""Alliance"": """", ""Association"": """", ""Class"": """", ""Order"": """"}",ok,,"{
+  ""species_name"": """",
+  ""location"": """",
+  ""coordinates"": """",
+  ""date"": """",
+  ""collector"": """",
+  ""notes"": ""Table 4-4 contains a detailed vegetation data for Asplenietea ruprestris and Potentillietalia caulescentis. The table includes various facies, reference numbers, map references, altitude, aspect, slope, cover percentage, plot area, and species abundance."",
+  ""other_visible_fields"": {
+    ""Class"": """",
+    ""Order"": """",
+    ""Alliance"": """",
+    ""Association"": """"
+  }
+}",,low,true,No species name was extracted.,ok,,
+images/Birks-HJB-1973-Present-Flora-Veg-Skye_5.png,,,,,,Present flora and vegetation data for Plantaginetea Majoris alliance in Lollo-Plantaginion association.,"{""Alliance"": ""Lollo-Plantaginion"", ""Altitude (feet)"": """", ""Anoeciation"": """", ""Class"": ""PLANTAGINETEA MAJORIS"", ""Cover (per cent)"": """", ""Map Reference"": """", ""Order"": ""Lolliam perenne-Platago major"", ""Plot area (square metres)"": """", ""Reference number"": """"}",ok,,"{
+  ""species_name"": """",
+  ""location"": """",
+  ""coordinates"": """",
+  ""date"": """",
+  ""collector"": """",
+  ""notes"": ""Present flora and vegetation data for Plantaginetea Majoris alliance in Lollo-Plantaginion association."",
+  ""other_visible_fields"": {
+    ""Class"": ""PLANTAGINETEA MAJORIS"",
+    ""Order"": ""Lolliam perenne-Platago major"",
+    ""Alliance"": ""Lollo-Plantaginion"",
+    ""Anoeciation"": """",
+    ""Reference number"": """",
+    ""Map Reference"": """",
+    ""Altitude (feet)"": """",
+    ""Cover (per cent)"": """",
+    ""Plot area (square metres)"": """"
+  }
+}",,low,true,No species name was extracted.,ok,,
