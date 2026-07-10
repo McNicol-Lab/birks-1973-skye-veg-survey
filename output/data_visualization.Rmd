@@ -1,0 +1,120 @@
+---
+title: "Skye Vegetation Survey: Data Visualisation"
+author: "Bhagyesh Sagole"
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+output:
+  html_document:
+    toc: true
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE
+)
+
+library(dplyr)
+library(ggplot2)
+library(readr)
+library(tidyr)
+
+# Find the project from this Rmd file, whether chunks are run interactively
+# in RStudio or the whole document is knitted.
+rmd_path <- if (interactive() && requireNamespace("rstudioapi", quietly = TRUE) &&
+                rstudioapi::isAvailable()) {
+  rstudioapi::getSourceEditorContext()$path
+} else {
+  knitr::current_input(dir = TRUE)
+}
+
+project_root <- if (nzchar(rmd_path)) {
+  dirname(dirname(normalizePath(rmd_path)))
+} else {
+  normalizePath("..")
+}
+```
+
+# Read in the data
+
+The main dataset contains one row for each species-by-releve observation.
+
+```{r read-data}
+survey_raw <- read_csv(
+  file.path(project_root, "output", "output.csv"),
+  col_types = cols(
+    releve_id = col_character(),
+    latitude = col_double(),
+    longitude = col_double(),
+    altitude_ft = col_double(),
+    altitude_m = col_double(),
+    domin_value = col_double(),
+    domin_cover_min_pct = col_double(),
+    domin_cover_max_pct = col_double(),
+    presence_binary = col_logical(),
+    needs_review = col_logical(),
+    .default = col_character()
+  )
+)
+```
+
+# First look at the data
+
+```{r preview}
+head(survey_raw)
+```
+
+```{r dimensions}
+dim(survey_raw)
+```
+
+```{r structure}
+glimpse(survey_raw)
+```
+
+# Basic data checks
+
+## Missing values by column
+
+```{r missing-values}
+missing_values <- survey_raw %>%
+  summarise(across(everything(), ~ sum(is.na(.x)))) %>%
+  pivot_longer(
+    cols = everything(),
+    names_to = "variable",
+    values_to = "n_missing"
+  ) %>%
+  arrange(desc(n_missing))
+
+missing_values
+```
+
+## Dataset summary
+
+```{r basic-summary}
+survey_raw %>%
+  summarise(
+    observation_rows = n(),
+    tables = n_distinct(table_id),
+    releves = n_distinct(paste(table_id, releve_id)),
+    species = n_distinct(species, na.rm = TRUE),
+    classes = n_distinct(class, na.rm = TRUE),
+    associations = n_distinct(association, na.rm = TRUE),
+    geolocated_rows = sum(!is.na(latitude) & !is.na(longitude))
+  )
+```
+
+## Numeric variables
+
+```{r numeric-summary}
+survey_raw %>%
+  select(latitude, longitude, altitude_ft, altitude_m,
+         domin_value, domin_cover_min_pct, domin_cover_max_pct) %>%
+  summary()
+```
+
+# Next steps
+
+The next stage can clean and reshape the data before creating visualisations of
+species frequency, vegetation classes, altitude, and geographic distribution.

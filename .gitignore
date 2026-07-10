@@ -6,6 +6,8 @@ images/
 *.tif
 *.zip
 __pycache__/
+.venv/
+venv/
 .env
 .DS_Store
 instructions.md
@@ -16,3 +18,8 @@ codex-instructions.md
 claude-instructions.md
 *codex*instructions*.md
 *claude*instructions*.md
+incognito.md
+*incognito*.md
+docs/*_cache/
+docs/*_files/
+docs/skye_veg_eda.Rmd

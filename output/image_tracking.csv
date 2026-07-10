@@ -1,0 +1,97 @@
+image_number,image_file,status,observations_added,note
+1,images/Birks-HJB-1973-Present-Flora-Veg-Skye_1.png,successful,175,Reference table 4.1 (verified).
+2,images/Birks-HJB-1973-Present-Flora-Veg-Skye_2.png,successful,108,Transcribed from scan.
+3,images/Birks-HJB-1973-Present-Flora-Veg-Skye_3.png,successful,72,Transcribed from scan.
+4,images/Birks-HJB-1973-Present-Flora-Veg-Skye_4.png,successful,616,Transcribed from scan.
+5,images/Birks-HJB-1973-Present-Flora-Veg-Skye_5.png,successful,232,Transcribed from scan.
+6,images/Birks-HJB-1973-Present-Flora-Veg-Skye_6.png,successful,52,Transcribed from scan.
+7,images/Birks-HJB-1973-Present-Flora-Veg-Skye_7.png,successful,156,Transcribed from scan.
+8,images/Birks-HJB-1973-Present-Flora-Veg-Skye_8.png,successful,456,"Table 4.8 transcribed from clean scan supplied for manual review; per-releve Domin cells flagged needs_review, verify against source."
+9,images/Birks-HJB-1973-Present-Flora-Veg-Skye_9.png,successful,207,Transcribed from scan.
+10,images/Birks-HJB-1973-Present-Flora-Veg-Skye_10.png,successful,143,Transcribed from scan.
+11,images/Birks-HJB-1973-Present-Flora-Veg-Skye_11.png,successful,78,Transcribed from scan.
+12,images/Birks-HJB-1973-Present-Flora-Veg-Skye_12.png,successful,160,Re-verified by direct scan read (no ollama): plot metadata (ref code / map reference / altitude / aspect / slope) corrected against the printed table; coordinate now verified on Skye landmass.
+13,images/Birks-HJB-1973-Present-Flora-Veg-Skye_13.png,successful,259,Transcribed from scan; table 4.13 releve 5 printed total is one higher than visible entries.
+14,images/Birks-HJB-1973-Present-Flora-Veg-Skye_14.png,successful,152,Re-verified by direct scan read (no ollama): plot metadata (ref code / map reference / altitude / aspect / slope) corrected against the printed table; coordinate now verified on Skye landmass.
+15,images/Birks-HJB-1973-Present-Flora-Veg-Skye_15.png,successful,46,Transcribed from scan; chemistry-only Table 4.16 not included in species output.
+16,images/Birks-HJB-1973-Present-Flora-Veg-Skye_16.png,successful,0,Handled; Table 4.16 is a chemistry-only continuation with no species-by-releve matrix.
+17,images/Birks-HJB-1973-Present-Flora-Veg-Skye_17.png,successful,105,Transcribed from scan; table 4.17 releve 5 printed total is one higher than visible entries.
+18,images/Birks-HJB-1973-Present-Flora-Veg-Skye_18.png,successful,288,Transcribed from scan.
+19,images/Birks-HJB-1973-Present-Flora-Veg-Skye_19.png,successful,496,Transcribed from scan; table 4.19 releves 7-8 have visible plus marks that make counts one higher than printed totals.
+20,images/Birks-HJB-1973-Present-Flora-Veg-Skye_20.png,successful,385,Transcribed from scan; table 4.20 visible entries put releve 3 one below and releve 4 one above printed totals.
+21,images/Birks-HJB-1973-Present-Flora-Veg-Skye_21.png,successful,369,Transcribed from scan.
+22,images/Birks-HJB-1973-Present-Flora-Veg-Skye_22.png,successful,375,Transcribed from scan; table 4.22 visible entries put releve 5 one above the printed total.
+23,images/Birks-HJB-1973-Present-Flora-Veg-Skye_23.png,successful,448,Transcribed from scan.
+24,images/Birks-HJB-1973-Present-Flora-Veg-Skye_24.png,successful,372,"Transcribed from scan; table 4.24 has unresolved count mismatches in releves 1, 3, and 5."
+25,images/Birks-HJB-1973-Present-Flora-Veg-Skye_25.png,successful,880,Re-verified by direct scan read (no ollama): plot metadata (ref code / map reference / altitude / aspect / slope) corrected against the printed table; coordinate now verified on Skye landmass.
+26,images/Birks-HJB-1973-Present-Flora-Veg-Skye_26.png,successful,864,Re-verified by direct scan read (no ollama): plot metadata (ref code / map reference / altitude / aspect / slope) corrected against the printed table; coordinate now verified on Skye landmass.
+27,images/Birks-HJB-1973-Present-Flora-Veg-Skye_27.png,successful,406,Transcribed from scan.
+28,images/Birks-HJB-1973-Present-Flora-Veg-Skye_28.png,successful,350,Transcribed from scan.
+29,images/Birks-HJB-1973-Present-Flora-Veg-Skye_29.png,successful,333,Transcribed from scan.
+30,images/Birks-HJB-1973-Present-Flora-Veg-Skye_30.png,successful,1095,Transcribed from scan.
+31,images/Birks-HJB-1973-Present-Flora-Veg-Skye_31.png,successful,0,Handled; scan is severely damaged and illegible — page content cannot be reliably transcribed.
+32,images/Birks-HJB-1973-Present-Flora-Veg-Skye_32.png,successful,195,Transcribed from scan.
+33,images/Birks-HJB-1973-Present-Flora-Veg-Skye_33.png,successful,378,Re-verified by direct scan read (no ollama): plot metadata (ref code / map reference / altitude / aspect / slope) corrected against the printed table; coordinate now verified on Skye landmass.
+34,images/Birks-HJB-1973-Present-Flora-Veg-Skye_34.png,successful,634,Re-verified by direct scan read (no ollama): plot metadata (ref code / map reference / altitude / aspect / slope) corrected against the printed table; coordinate now verified on Skye landmass.
+35,images/Birks-HJB-1973-Present-Flora-Veg-Skye_35.png,successful,297,Transcribed from scan.
+36,images/Birks-HJB-1973-Present-Flora-Veg-Skye_36.png,successful,552,Transcribed from scan.
+37,images/Birks-HJB-1973-Present-Flora-Veg-Skye_37.png,successful,320,Transcribed from scan.
+38,images/Birks-HJB-1973-Present-Flora-Veg-Skye_38.png,successful,740,Transcribed from scan.
+39,images/Birks-HJB-1973-Present-Flora-Veg-Skye_39.png,successful,708,Transcribed from scan.
+40,images/Birks-HJB-1973-Present-Flora-Veg-Skye_40.png,successful,295,Transcribed from scan; 85 rows remain flagged needs_review (specific presence uncertainty in sparse cells).
+41,images/Birks-HJB-1973-Present-Flora-Veg-Skye_41.png,successful,360,Re-verified by direct scan read (no ollama): plot metadata (ref code / map reference / altitude / aspect / slope) corrected against the printed table; coordinate now verified on Skye landmass.
+42,images/Birks-HJB-1973-Present-Flora-Veg-Skye_42.png,successful,468,Re-verified by direct scan read (no ollama): plot metadata (ref code / map reference / altitude / aspect / slope) corrected against the printed table; coordinate now verified on Skye landmass.
+43,images/Birks-HJB-1973-Present-Flora-Veg-Skye_43.png,successful,425,Re-verified by direct scan read (no ollama): plot metadata (ref code / map reference / altitude / aspect / slope) corrected against the printed table; coordinate now verified on Skye landmass.
+44,images/Birks-HJB-1973-Present-Flora-Veg-Skye_44.png,successful,459,Re-verified by direct scan read (no ollama): removed 17 duplicate/mislabeled species rows found during re-read (a species had been listed twice under two different names with conflicting values).
+45,images/Birks-HJB-1973-Present-Flora-Veg-Skye_45.png,successful,392,Re-verified by direct scan read (no ollama): plot metadata (ref code / map reference / altitude / aspect / slope) corrected against the printed table; coordinate now verified on Skye landmass.
+46,images/Birks-HJB-1973-Present-Flora-Veg-Skye_46.png,successful,280,Re-verified by direct scan read (no ollama): plot metadata (ref code / map reference / altitude / aspect / slope) corrected against the printed table; coordinate now verified on Skye landmass.
+47,images/Birks-HJB-1973-Present-Flora-Veg-Skye_47.png,successful,341,Re-verified by direct scan read (no ollama): plot metadata (ref code / map reference / altitude / aspect / slope) corrected against the printed table; coordinate now verified on Skye landmass. Also corrected a mislabeled/misread species cell value found during re-read.
+48,images/Birks-HJB-1973-Present-Flora-Veg-Skye_48.png,successful,330,Re-verified by direct scan read (no ollama): plot metadata (ref code / map reference / altitude / aspect / slope) corrected against the printed table; coordinate now verified on Skye landmass. Also corrected a mislabeled/misread species cell value found during re-read.
+49,images/Birks-HJB-1973-Present-Flora-Veg-Skye_49.png,unsuccessful,,"Genuinely rotated/landscape scan — needs an actual rescan, not a reread (see docs/accuracy_guide.md)."
+50,images/Birks-HJB-1973-Present-Flora-Veg-Skye_50.png,unsuccessful,,"Genuinely rotated/landscape scan — needs an actual rescan, not a reread (see docs/accuracy_guide.md)."
+51,images/Birks-HJB-1973-Present-Flora-Veg-Skye_51.png,successful,495,Re-verified by direct scan read (no ollama): plot metadata (ref code / map reference / altitude / aspect / slope) corrected against the printed table; coordinate now verified on Skye landmass.
+52,images/Birks-HJB-1973-Present-Flora-Veg-Skye_52.png,successful,344,Re-verified by direct scan read (no ollama): plot metadata (ref code / map reference / altitude / aspect / slope) corrected against the printed table; coordinate now verified on Skye landmass.
+53,images/Birks-HJB-1973-Present-Flora-Veg-Skye_53.png,successful,476,Re-verified by direct scan read (no ollama): plot metadata (ref code / map reference / altitude / aspect / slope) corrected against the printed table; coordinate now verified on Skye landmass. Also corrected a mislabeled/misread species cell value found during re-read.
+54,images/Birks-HJB-1973-Present-Flora-Veg-Skye_54.png,successful,560,Re-verified by direct scan read (no ollama): plot metadata (ref code / map reference / altitude / aspect / slope) corrected against the printed table; coordinate now verified on Skye landmass.
+55,images/Birks-HJB-1973-Present-Flora-Veg-Skye_55.png,successful,174,Transcribed from scan.
+56,images/Birks-HJB-1973-Present-Flora-Veg-Skye_56.png,successful,282,Transcribed from scan.
+57,images/Birks-HJB-1973-Present-Flora-Veg-Skye_57.png,successful,528,Re-verified by direct scan read (no ollama): plot metadata (ref code / map reference / altitude / aspect / slope) corrected against the printed table; coordinate now verified on Skye landmass.
+58,images/Birks-HJB-1973-Present-Flora-Veg-Skye_58.png,successful,300,Re-verified by direct scan read (no ollama): plot metadata (ref code / map reference / altitude / aspect / slope) corrected against the printed table; coordinate now verified on Skye landmass.
+59,images/Birks-HJB-1973-Present-Flora-Veg-Skye_59.png,successful,203,Re-verified by direct scan read (no ollama): plot metadata (ref code / map reference / altitude / aspect / slope) corrected against the printed table; coordinate now verified on Skye landmass.
+60,images/Birks-HJB-1973-Present-Flora-Veg-Skye_60.png,successful,420,Re-verified by direct scan read (no ollama): plot metadata (ref code / map reference / altitude / aspect / slope) corrected against the printed table; coordinate now verified on Skye landmass.
+61,images/Birks-HJB-1973-Present-Flora-Veg-Skye_61.png,successful,420,Re-verified by direct scan read (no ollama): plot metadata (ref code / map reference / altitude / aspect / slope) corrected against the printed table; coordinate now verified on Skye landmass.
+62,images/Birks-HJB-1973-Present-Flora-Veg-Skye_62.png,successful,602,Re-verified by direct scan read (no ollama): plot metadata (ref code / map reference / altitude / aspect / slope) corrected against the printed table; coordinate now verified on Skye landmass.
+63,images/Birks-HJB-1973-Present-Flora-Veg-Skye_63.png,successful,434,Re-verified by direct scan read (no ollama): plot metadata (ref code / map reference / altitude / aspect / slope) corrected against the printed table; coordinate now verified on Skye landmass.
+64,images/Birks-HJB-1973-Present-Flora-Veg-Skye_64.png,successful,546,Re-verified by direct scan read (no ollama): plot metadata (ref code / map reference / altitude / aspect / slope) corrected against the printed table; coordinate now verified on Skye landmass.
+65,images/Birks-HJB-1973-Present-Flora-Veg-Skye_65.png,successful,80,Transcribed from scan; 3 rows flagged: additional footnote species names approximate.
+66,images/Birks-HJB-1973-Present-Flora-Veg-Skye_66.png,successful,448,"Table 4.50: 6-digit NG map references recovered by rotating the landscape scan upright (previously deemed illegible), converted to WGS84 offline and verified on the Skye landmass. Releve 14 ref_code corrected B68-208 -> B68-298."
+67,images/Birks-HJB-1973-Present-Flora-Veg-Skye_67.png,successful,468,Re-verified by direct scan read (no ollama): plot metadata (ref code / map reference / altitude / aspect / slope) corrected against the printed table; coordinate now verified on Skye landmass.
+68,images/Birks-HJB-1973-Present-Flora-Veg-Skye_68.png,successful,663,Re-verified by direct scan read (no ollama): plot metadata (ref code / map reference / altitude / aspect / slope) corrected against the printed table; coordinate now verified on Skye landmass.
+69,images/Birks-HJB-1973-Present-Flora-Veg-Skye_69.png,successful,299,"Table 4.51: 6-digit NG map references recovered by rotating the landscape scan upright (previously deemed illegible), converted to WGS84 offline and verified on the Skye landmass."
+70,images/Birks-HJB-1973-Present-Flora-Veg-Skye_70.png,successful,186,Re-verified by direct scan read (no ollama): plot metadata (ref code / map reference / altitude / aspect / slope) corrected against the printed table; coordinate now verified on Skye landmass.
+71,images/Birks-HJB-1973-Present-Flora-Veg-Skye_71.png,successful,806,Re-verified by direct scan read (no ollama): plot metadata (ref code / map reference / altitude / aspect / slope) corrected against the printed table; coordinate now verified on Skye landmass.
+72,images/Birks-HJB-1973-Present-Flora-Veg-Skye_72.png,successful,264,Re-verified by direct scan read (no ollama): plot metadata (ref code / map reference / altitude / aspect / slope) corrected against the printed table; coordinate now verified on Skye landmass.
+73,images/Birks-HJB-1973-Present-Flora-Veg-Skye_73.png,successful,475,Transcribed from scan; table 4.55 visible entries put releve 5 one below the printed total.
+74,images/Birks-HJB-1973-Present-Flora-Veg-Skye_74.png,successful,645,Transcribed from scan; table 4.56 visible entries put releve 2 two above the printed total.
+75,images/Birks-HJB-1973-Present-Flora-Veg-Skye_75.png,successful,0,Handled; Table 4.57 is a synoptic constancy table (~330 species × 55 community columns); not a species-by-releve plot matrix.
+76,images/Birks-HJB-1973-Present-Flora-Veg-Skye_76.png,successful,0,Handled; Table 4.57 continued (synoptic constancy table).
+77,images/Birks-HJB-1973-Present-Flora-Veg-Skye_77.png,successful,0,Handled; Table 4.57 continued (synoptic constancy table).
+78,images/Birks-HJB-1973-Present-Flora-Veg-Skye_78.png,successful,0,Handled; Table 4.57 continued (synoptic constancy table).
+79,images/Birks-HJB-1973-Present-Flora-Veg-Skye_79.png,successful,0,Handled; Table 4.57 continued (synoptic constancy table).
+80,images/Birks-HJB-1973-Present-Flora-Veg-Skye_80.png,successful,0,Handled; Table 4.57 continued (synoptic constancy table).
+81,images/Birks-HJB-1973-Present-Flora-Veg-Skye_81.png,successful,0,Handled; Table 4.57 continued (synoptic constancy table).
+82,images/Birks-HJB-1973-Present-Flora-Veg-Skye_82.png,successful,0,Handled; Table 4.57 continued (synoptic constancy table).
+83,images/Birks-HJB-1973-Present-Flora-Veg-Skye_83.png,successful,0,Handled; Table 4.57 continued (synoptic constancy table).
+84,images/Birks-HJB-1973-Present-Flora-Veg-Skye_84.png,successful,0,Handled; Table 4.57 continued (synoptic constancy table).
+85,images/Birks-HJB-1973-Present-Flora-Veg-Skye_85.png,successful,0,Handled; Table 4.57 continued (synoptic constancy table).
+86,images/Birks-HJB-1973-Present-Flora-Veg-Skye_86.png,successful,0,Handled; Table 4.57 continued (synoptic constancy table).
+87,images/Birks-HJB-1973-Present-Flora-Veg-Skye_87.png,successful,0,Handled; Table 4.57 continued (synoptic constancy table).
+88,images/Birks-HJB-1973-Present-Flora-Veg-Skye_88.png,successful,0,Handled; Table 4.57 continued (synoptic constancy table).
+89,images/Birks-HJB-1973-Present-Flora-Veg-Skye_89.png,successful,0,Handled; Table 4.57 continued (synoptic constancy table).
+90,images/Birks-HJB-1973-Present-Flora-Veg-Skye_90.png,successful,0,Handled; Table 4.57 continued (synoptic constancy table).
+91,images/Birks-HJB-1973-Present-Flora-Veg-Skye_91.png,successful,0,Handled; Table 4.57 continued (synoptic constancy table).
+92,images/Birks-HJB-1973-Present-Flora-Veg-Skye_92.png,successful,0,Handled; Table 4.57 continued (synoptic constancy table).
+93,images/Birks-HJB-1973-Present-Flora-Veg-Skye_93.png,successful,0,Handled; Table 4.57 continued (synoptic constancy table).
+94,images/Birks-HJB-1973-Present-Flora-Veg-Skye_94.png,successful,0,Handled; Table 4.57 continued (synoptic constancy table).
+95,images/Birks-HJB-1973-Present-Flora-Veg-Skye_95.png,successful,0,Handled; Table 4.57 continued (synoptic constancy table).
+96,images/Birks-HJB-1973-Present-Flora-Veg-Skye_96.png,successful,0,Handled; Table 4.57 continued (synoptic constancy table).

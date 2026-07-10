@@ -1,5 +1,7 @@
 You are extracting data from scanned ecological vegetation tables, not herbarium specimen labels.
 
+IMPORTANT — multi-page tables: Some tables in this dataset span two or more scanned pages. The first page shows all column headers (releve numbers, plot metadata rows) plus the first batch of species rows. Subsequent pages show only more species rows with no visible column headers. If PREVIOUS PAGE CONTEXT appears above, read it carefully. Use the releve IDs and table metadata from the previous page when the current image does not show column headers. Do not mark a continuation page as a bad read just because the headers are absent — the data is correct, the headers are simply on the prior page.
+
 The long-term research goal is to digitize legacy vegetation survey data from Birks' 1970s Isle of Skye work into a modern tidy database. The final data will support baseline community composition, richness, abundance, functional-group, beta-diversity, and resurvey comparisons about change in Scottish coastal temperate rainforests.
 
 The image usually contains a structured phytosociological vegetation table. Convert it into analysis-ready data, not a visual copy of the printed page.
@@ -25,6 +27,7 @@ Use this exact JSON structure:
       "releve_id": "",
       "ref_code": "",
       "map_reference": "",
+      "os_grid_square": "",
       "latitude": "",
       "longitude": "",
       "altitude_ft": "",
@@ -33,6 +36,7 @@ Use this exact JSON structure:
       "slope_deg": "",
       "cover_pct": "",
       "plot_area_m2": "",
+      "species_reported": "",
       "needs_review": false,
       "note": ""
     }
@@ -53,7 +57,7 @@ Use this exact JSON structure:
 }
 
 Table metadata rules:
-- table_id should be the printed table number if visible, for example "Table 4.20". If no table number is visible, use the clearest short table identifier visible in the image.
+- table_id should be the printed table number in machine-readable form. Examples: "Table 4.1" becomes "table_4_1"; "Table 4.20" becomes "table_4_20". If no table number is visible, use the clearest short table identifier visible in the image.
 - Extract class, order, alliance, and association from the phytosociological classification block.
 - n_releves is the number of plot/releve columns in the table, usually 7.
 - total_species_reported comes from rows like "Total number of species (38)".
@@ -65,11 +69,13 @@ Plot rules:
 - releve_id should be "1", "2", "3", etc.
 - Combine stacked reference-number cells into one ref_code when possible. Example: top row "B68" plus lower row "155" becomes "B68-155".
 - Combine stacked map-reference cells into one map_reference when possible. Example: "504" plus "446" becomes "504446" unless the printed style clearly uses a separator.
+- os_grid_square is the two-letter British National Grid square when visible or known from the table/map context. For Isle of Skye tables this is often "NG", but leave it blank and flag for review if uncertain.
 - latitude and longitude should be decimal degrees when they are printed or when the map/grid reference can be converted safely.
 - Do not guess latitude or longitude from a partial map_reference. If the printed map_reference lacks the needed grid-square context, leave latitude and longitude blank, set needs_review to true, and explain that coordinate conversion needs manual grid-reference confirmation.
 - Keep altitude_ft when the table says feet.
 - Fill altitude_m only if metres are printed or the conversion is obvious and reliable. If converted from feet, round to the nearest whole metre and mention conversion in note.
 - Preserve aspect_deg, slope_deg, cover_pct, and plot_area_m2 exactly as printed.
+- species_reported should come from the plot-specific "Total number of species" row. Example: if releve 1 has 11 species out of total 38, use "11" for species_reported.
 - If a value is missing, unclear, or possibly misaligned, leave the value blank if needed, set needs_review to true, and explain briefly in note.
 
 Observation rules:
@@ -83,6 +89,8 @@ Observation rules:
 - Treat "+" as low presence: domin_value "+", raw_value "+", presence_binary "1".
 - Treat integers as Domin values: domin_value should be "1", "2", "3", etc., raw_value should match, and presence_binary should be "1".
 - Treat "x" or "✗" as presence marks when they appear in a species-by-releve cell: domin_value should be "x", raw_value should be "x", and presence_binary should be "1".
+- A period "." means not detected: domin_value ".", raw_value ".", presence_binary "0".
+- The Python script will convert Domin categories 1-10 into cover percent ranges, so preserve the printed Domin value exactly.
 - constancy_class should come from summary column C when visible, for example "II", "III", "V".
 - summary_value should come from summary column D when visible, for example "0.5", "5.3", or "6.3".
 - If a species name or value is uncertain, preserve the visible text, set needs_review to true, and explain briefly in note.

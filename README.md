@@ -53,36 +53,41 @@ Ollama must be running before either model-backed script is started. Pull the mo
 
 ```bash
 ollama pull qwen2.5vl:3b
-ollama pull qwen2.5:3b
 ```
 
 `qwen2.5vl:3b` is the default vision model for this 8GB MacBook Air because it completed the first local smoke test.
 
 Put raw scans in `images/`. That folder and common image extensions are ignored by git.
 
-Run tidy extraction first:
+Run a safe three-image tidy extraction test first:
 
 ```bash
-python3 scripts/parse_images.py --limit 5 --batch-size 1 --max-image-side 1000 --num-predict 8192 --mode tidy --prompt-file prompts/csv_parsing_instructions.md
+python3 scripts/parse_images.py --resume --limit 3 --batch-size 1 --max-image-side 1000 --num-predict 8192 --mode tidy --prompt-file prompts/csv_parsing_instructions.md
 ```
 
 This reads supported images from `images/`, sends one image at a time to `qwen2.5vl:3b`, uses `prompts/csv_parsing_instructions.md`, and writes tidy CSV outputs:
 
 - `output/output.csv` for long-format species observations
-- `output/plots.csv` for plot/releve metadata, including map references and latitude/longitude fields when available
-- `output/tables.csv` for table-level metadata
+- `output/image_tracking.csv` for one-row-per-image progress tracking
 
-`--max-image-side` makes a temporary resized copy for Ollama without changing the original scan. `--num-predict` caps the model response length.
+The script saves both files after every image. `--resume` skips images already
+marked `successful` or `unsuccessful`, so the same command can safely be run
+again after an interruption. Use `--retry-failed` when unsuccessful images
+should be attempted again.
 
-The older species-name validation script is still available, but it was built for the earlier specimen-label workflow:
+After reviewing the three-image test, process all remaining images:
 
 ```bash
-python3 scripts/validate_names.py --resume --batch-size 50
+python3 scripts/parse_images.py --resume --batch-size 1 --max-image-side 1000 --num-predict 8192 --mode tidy --prompt-file prompts/csv_parsing_instructions.md
 ```
 
-Future validation should target the `species` column in `output/output.csv`.
+Retry only the failed images while continuing to skip successful images:
 
-Do not run `scripts/parse_images.py` and `scripts/validate_names.py` at the same time on the 8GB MacBook Air. Running them separately avoids loading both Ollama models together.
+```bash
+python3 scripts/parse_images.py --resume --retry-failed --batch-size 1 --max-image-side 1000 --num-predict 8192 --mode tidy --prompt-file prompts/csv_parsing_instructions.md
+```
+
+`--max-image-side` makes a temporary resized copy for Ollama without changing the original scan. `--num-predict` caps the model response length. `--batch-size` remains accepted for compatibility, but durable runs save after every image.
 
 Optionally download a Google Drive image folder into `images/`:
 
