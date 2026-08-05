@@ -1,0 +1,712 @@
+
+---
+title: "Isle of Skye Vegetation Survey — Birks (1973)"
+subtitle: "Exploratory Data Analysis"
+author: "Bhagyesh Sagole & Pawan Kumar"
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    theme: flatly
+    highlight: tango
+    df_print: paged
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  fig.width  = 10,
+  fig.height = 6
+)
+```
+```{r libraries, message=FALSE}
+library(tidyverse)
+library(readr)
+library(knitr)
+library(kableExtra)
+library(vegan)
+library(DT)
+library(plotly)
+library(RColorBrewer)
+library(indicspecies)
+library(permute)
+library(patchwork)
+library(glue)
+library(scales)
+
+theme_skye <- function(base_size = 11) {
+  theme_minimal(base_size = base_size) %+replace%
+    theme(
+      panel.grid.minor  = element_blank(),
+      panel.grid.major  = element_line(colour = "#eeeeee"),
+      axis.text         = element_text(colour = "#444444"),
+      plot.title        = element_text(face = "bold", size = base_size + 1,
+                                       colour = "#2e5e4e", margin = margin(b = 6)),
+      plot.subtitle     = element_text(size = base_size - 1, colour = "#666666",
+                                       margin = margin(b = 10)),
+      legend.text       = element_text(size = base_size - 2),
+      strip.text        = element_text(face = "bold", size = base_size - 1)
+    )
+}
+```
+
+---
+
+# 1 · Survey Overview
+
+This section loads the data, applies cleaning steps agreed with the PI,
+and reports top-level dataset metrics.
+
+```{r load-data}
+# ── Load raw data ─────────────────────────────────────────────────────────────
+survey_raw <- read_csv(
+  "~/Desktop/Gavin briks lab/output.csv",
+  col_types = cols(
+    releve_id            = col_character(),
+    latitude             = col_double(),
+    longitude            = col_double(),
+    altitude_ft          = col_double(),
+    altitude_m           = col_double(),
+    domin_value          = col_double(),
+    domin_cover_min_pct  = col_double(),
+    domin_cover_max_pct  = col_double(),
+    presence_binary      = col_logical(),
+    needs_review         = col_logical(),
+    .default             = col_character()
+  )
+)
+
+# ── Cleaning ──────────────────────────────────────────────────────────────────
+# 1. Drop raw_value (identical to domin_value, confirmed redundant)
+# 2. Add constancy_class_numeric (I–V → 1–5); handle pipe-separated values
+# 3. Create geo_releve_id: unique plot ID ordered SW→NE (smallest lat + most
+#    negative lon = 1), as requested by PI
+
+survey <- survey_raw %>%
+  select(-any_of("raw_value")) %>%
+  mutate(
+    # Primary constancy class (take first value when pipe-separated e.g. "III|I")
+    constancy_primary         = str_split_fixed(constancy_class, "\\|", 2)[, 1],
+    constancy_class_numeric   = c("I"=1,"II"=2,"III"=3,"IV"=4,"V"=5)[constancy_primary],
+    constancy_class_numeric_2 = {
+      sec <- str_split_fixed(constancy_class, "\\|", 2)[, 2]
+      ifelse(sec == "", NA_real_, c("I"=1,"II"=2,"III"=3,"IV"=4,"V"=5)[sec])
+    }
+  ) %>%
+  select(-constancy_primary)
+
+# Build geo_releve_id lookup
+releve_uid_map <- survey %>%
+  distinct(latitude, longitude, table_id, releve_id) %>%
+  arrange(latitude, longitude) %>%          # SW → NE
+  mutate(geo_releve_id = row_number())
+
+survey <- survey %>%
+  left_join(releve_uid_map,
+            by = c("latitude", "longitude", "table_id", "releve_id"))
+```
+
+```{r overview-table}
+# Counts for the "at a glance" table
+releves_coords <- survey %>%
+  filter(!is.na(latitude), !is.na(longitude)) %>%
+  distinct(geo_releve_id) %>% nrow()
+
+tibble(
+  Metric = c("Observation rows", "Survey plots (releves)", "Vegetation classes",
+             "Alliances", "Associations", "Species (standardised)",
+             "Releves with coordinates"),
+  Value  = c(
+    format(nrow(survey), big.mark = ","),
+    n_distinct(survey$geo_releve_id),
+    n_distinct(survey$class,       na.rm = TRUE),
+    n_distinct(survey$alliance,    na.rm = TRUE),
+    n_distinct(survey$association, na.rm = TRUE),
+    n_distinct(survey$species,     na.rm = TRUE),
+    releves_coords
+  )
+) %>%
+  kable(caption = "Table 1. Dataset at a glance.") %>%
+  kable_styling(bootstrap_options = c("striped","hover","condensed"),
+                full_width = FALSE)
+```
+
+Each releve is assigned a geographic index (`geo_releve_id`) from
+**1** (south-westernmost) to **`r n_distinct(survey$geo_releve_id)`**
+(north-easternmost), sorting on latitude then longitude to follow
+Skye's SW→NE orientation.
+
+---
+
+
+# 3 · Vegetation Classes & Associations
+
+```{r veg-classes}
+# Count unique releves per vegetation class
+class_counts <- survey %>%
+  distinct(geo_releve_id, class) %>%
+  count(class, name = "n_releves") %>%
+  arrange(desc(n_releves))
+
+p_class <- ggplot(class_counts,
+       aes(x = reorder(class, n_releves), y = n_releves, fill = n_releves)) +
+  geom_col(show.legend = FALSE) +
+  coord_flip() +
+  scale_fill_viridis_c(option = "D") +
+  labs(title = "Releves per Vegetation Class", x = NULL, y = "Number of releves") +
+  theme_minimal(base_size = 11)
+
+ggplotly(p_class)
+```
+```{r top-assoc}
+top_assoc <- survey %>%
+  filter(!is.na(association)) %>%
+  distinct(geo_releve_id, association, class) %>%
+  count(association, class, name = "n_releves") %>%
+  slice_max(n_releves, n = 13, with_ties = FALSE)   # 13 to match Bhagyesh
+
+p_assoc <- ggplot(top_assoc,
+       aes(x = reorder(association, n_releves), y = n_releves, fill = class)) +
+  geom_col() +
+  coord_flip() +
+  labs(title = "Top 10 Associations by Releve Count",
+       x = NULL, y = "Number of releves", fill = "Class") +
+  theme_minimal(base_size = 10) +
+  theme(legend.position = "bottom",
+        legend.text = element_text(size = 7))
+
+ggplotly(p_assoc)
+```
+
+```{r full-assoc-table}
+survey %>%
+  filter(!is.na(association)) %>%
+  distinct(geo_releve_id, class, alliance, association) %>%
+  count(class, alliance, association, name = "n_releves") %>%
+  arrange(desc(n_releves)) %>%
+  mutate(` ` = row_number()) %>%
+  select(` `, everything()) %>%
+  datatable(caption  = "Table 2. Releve count by association (all associations).",
+            filter   = "top",
+            rownames = FALSE,
+            options  = list(pageLength = 15, scrollX = TRUE))
+```
+---
+
+# 4 · Species Frequency
+
+```{r top-species}
+# Count how many releves each species appears in (presence only)
+species_freq <- survey %>%
+  filter(presence_binary == TRUE) %>%
+  count(species, name = "n_releves") %>%
+  arrange(desc(n_releves))
+
+p_top <- species_freq %>%
+  slice_max(n_releves, n = 10) %>%
+  ggplot(aes(x = reorder(species, n_releves), y = n_releves, fill = n_releves)) +
+  geom_col(show.legend = FALSE) +
+  coord_flip() +
+  scale_fill_viridis_c(option = "B") +
+  labs(title = "Top 10 Most-Frequent Species", x = NULL, y = "Number of releves") +
+  theme_minimal(base_size = 12)
+
+ggplotly(p_top)
+```
+
+```{r species-summary-table}
+survey %>%
+  filter(presence_binary == TRUE, !is.na(domin_value)) %>%
+  group_by(species) %>%
+  summarise(
+    releves_n      = n_distinct(geo_releve_id),
+    associations_n = n_distinct(association, na.rm = TRUE),
+    mean_domin     = round(mean(domin_value, na.rm = TRUE), 2),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(releves_n)) %>%
+  slice_head(n = 10) %>%
+  mutate(rank = row_number()) %>%
+  select(rank, everything()) %>%
+  kable(col.names = c(" ", "Species", "Releves (n)", "Associations (n)", "Mean Domin"),
+        caption   = "Table 3. Top 10 species by releve occurrence.") %>%
+  kable_styling(bootstrap_options = c("striped","hover","condensed"),
+                full_width = FALSE)
+```
+
+```{r rare-species}
+p_rare <- species_freq %>%
+  filter(n_releves == 1) %>%          # truly rare: seen in only 1 releve
+  slice_head(n = 10) %>%
+  ggplot(aes(x = reorder(species, n_releves), y = n_releves, fill = n_releves)) +
+  geom_col(show.legend = FALSE) +
+  coord_flip() +
+  scale_fill_viridis_c(option = "A") +
+  labs(title = "10 Rarest Species (Globally)", x = NULL, y = "Number of releves") +
+  theme_minimal(base_size = 12)
+
+ggplotly(p_rare)
+```
+---
+
+# 5 · Top-10 & Rarest-10 Species per Association
+
+Each table shows the top 10 (or rarest 10) species within each
+association, ranked by % of that association's releves.
+
+```{r per-assoc-freq}
+# For each association: how many releves contain each species?
+per_assoc <- survey %>%
+  filter(!is.na(association), presence_binary == TRUE) %>%
+  group_by(association) %>%
+  mutate(n_releves_assoc = n_distinct(geo_releve_id)) %>%
+  group_by(association, species, n_releves_assoc) %>%
+  summarise(n = n_distinct(geo_releve_id), .groups = "drop") %>%
+  mutate(pct = round(100 * n / n_releves_assoc, 1))
+```
+
+```{r top10-per-assoc}
+per_assoc %>%
+  group_by(association) %>%
+  slice_max(pct, n = 10, with_ties = FALSE) %>%
+  ungroup() %>%
+  arrange(association, desc(pct)) %>%
+  mutate(` ` = row_number()) %>%
+  select(` `, Class = association, Association = association, 
+         species, n_releves = n,
+         assoc_releves = n_releves_assoc, pct_present = pct) %>%
+  datatable(caption  = "Table 4. Top-10 species per association.",
+            filter   = "top",
+            rownames = FALSE,
+            options  = list(pageLength = 20, scrollX = TRUE))
+```
+
+
+```{r rare10-per-assoc}
+per_assoc %>%
+  group_by(association) %>%
+  slice_min(pct, n = 10, with_ties = FALSE) %>%
+  ungroup() %>%
+  arrange(association, pct) %>%
+  mutate(` ` = row_number()) %>%
+  select(` `, association, species, n_releves = n,
+         assoc_releves = n_releves_assoc, pct_present = pct) %>%
+  datatable(caption  = "Table 5. 10 rarest species per association.",
+            filter   = "top",
+            rownames = FALSE,
+            options  = list(pageLength = 20, scrollX = TRUE))
+```
+
+---
+
+# 6 · Domin Cover Scores
+
+The Domin scale runs 1 → 10: from sparse presence (<4% cover) to
+near-complete dominance (96–100%).
+```{r domin-dist}
+domin_labels <- c(
+  "1" = "1 (<4%)",
+  "2" = "2 (4–10%)",
+  "3" = "3 (11–25%)",
+  "4" = "4 (26–33%)",
+  "5" = "5 (34–40%)",
+  "6" = "6 (41–50%)",
+  "7" = "7 (51–75%)",
+  "8" = "8 (76–90%)",
+  "9" = "9 (91–95%)",
+  "10" = "10 (96–100%)"
+)
+
+p_domin <- survey %>%
+  filter(!is.na(domin_value), domin_value > 0) %>%
+  mutate(domin_cat = factor(
+    domin_labels[as.character(as.integer(domin_value))],
+    levels = domin_labels
+  )) %>%
+  count(domin_cat) %>%
+  ggplot(aes(x = domin_cat, y = n, fill = domin_cat)) +
+  geom_col(show.legend = FALSE) +
+  scale_fill_brewer(palette = "Greens") +
+  labs(title = "Domin cover score distribution, all species and releves",
+       x = "Domin score", y = "Observations") +
+  theme_minimal(base_size = 12) +
+  theme(axis.text.x = element_text(angle = 25, hjust = 1))
+
+ggplotly(p_domin)
+```
+```{r domin-by-assoc, fig.height=10}
+survey %>%
+  filter(association %in% top_assoc$association,
+         !is.na(domin_value), domin_value > 0) %>%
+  mutate(domin_cat = factor(
+    domin_labels[as.character(as.integer(domin_value))],
+    levels = domin_labels
+  )) %>%
+  count(association, domin_cat) %>%
+  ggplot(aes(x = domin_cat, y = n, fill = domin_cat)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~association, scales = "free_y", ncol = 2) +
+  scale_fill_brewer(palette = "Greens") +
+  labs(title = "Domin Distribution — Top 10 Associations",
+       x = "Domin score", y = "Observations") +
+  theme_minimal(base_size = 9) +
+  theme(axis.text.x = element_text(angle = 25, hjust = 1, size = 7))
+```
+
+```{r domin-mean-species}
+# Which species have the highest mean Domin score? (min 10 occurrences)
+survey %>%
+  filter(!is.na(domin_value), domin_value > 0) %>%
+  group_by(species) %>%
+  summarise(mean_domin = mean(domin_value, na.rm = TRUE),
+            n = n(), .groups = "drop") %>%
+  filter(n >= 10) %>%
+  slice_max(mean_domin, n = 10) %>%
+  ggplot(aes(x = reorder(species, mean_domin), y = mean_domin, fill = mean_domin)) +
+  geom_col(show.legend = FALSE) +
+  coord_flip() +
+  scale_fill_viridis_c(option = "C") +
+  labs(title = "Top 10 Species by Mean Domin Score (min 10 occurrences)",
+       x = NULL, y = "Mean Domin score") +
+  theme_minimal(base_size = 12)
+```
+
+---
+
+# 7 · Community Matrix & Clustering
+
+Binary presence/absence matrix (species in ≥ 3 releves only),
+clustered with Ward's D2 on Jaccard dissimilarities.
+
+```{r community-matrix}
+# Build wide presence/absence matrix: rows = releves, cols = species
+comm_long <- survey %>%
+  filter(presence_binary == TRUE, !is.na(geo_releve_id)) %>%
+  distinct(geo_releve_id, species)
+
+# Keep only species found in 3 or more releves
+keep_spp <- comm_long %>%
+  count(species) %>%
+  filter(n >= 3) %>%
+  pull(species)
+
+comm_wide <- comm_long %>%
+  filter(species %in% keep_spp) %>%
+  mutate(present = 1L) %>%
+  pivot_wider(names_from  = species,
+              values_from = present,
+              values_fill = 0L) %>%
+  column_to_rownames("geo_releve_id")
+
+tibble(
+  Metric  = c("Releves (rows)", "Species retained (cols)",
+              "Species excluded (< 3 releves)", "Matrix fill %"),
+  Value   = c(
+    nrow(comm_wide),
+    ncol(comm_wide),
+    n_distinct(comm_long$species) - length(keep_spp),
+    round(100 * sum(comm_wide) / prod(dim(comm_wide)), 1)
+  )
+) %>%
+  kable(caption = "Table 6. Community matrix dimensions.") %>%
+  kable_styling(bootstrap_options = c("striped","condensed"), full_width = FALSE)
+```
+
+```{r clustering, fig.height=8}
+set.seed(42)
+jac_dist <- vegdist(comm_wide, method = "jaccard", binary = TRUE)
+hc        <- hclust(jac_dist, method = "ward.D2")
+K         <- 10
+clusters  <- cutree(hc, k = K)
+cluster_cols <- setNames(
+  colorRampPalette(brewer.pal(10, "Paired"))(K),
+  as.character(1:K)
+)
+
+par(mar = c(2, 3, 4, 1))
+plot(as.dendrogram(hc), leaflab = "none",
+     main = glue("Hierarchical clustering (Ward / Jaccard) . k = {K} clusters"),
+     ylab = "Height (Jaccard dissimilarity)")
+rect.hclust(hc, k = K, border = cluster_cols)
+legend("topright", legend = paste("Cluster", 1:K),
+       fill = cluster_cols, cex = 0.75, ncol = 2, bty = "n")
+```
+
+```{r cluster-assoc-table}
+cluster_df <- tibble(
+  geo_releve_id = as.integer(names(clusters)),
+  cluster       = clusters
+)
+
+# Also create sp_mat alias so section 9 works
+sp_mat <- comm_wide
+
+survey %>%
+  distinct(geo_releve_id, association, class) %>%
+  inner_join(cluster_df, by = "geo_releve_id") %>%
+  filter(!is.na(association)) %>%
+  count(Class = class, Association = association, cluster) %>%
+  pivot_wider(names_from = cluster, values_from = n,
+              values_fill = 0L, names_prefix = "C") %>%
+  arrange(Class, Association) %>%
+  datatable(
+    caption = glue("Table 7. Releve count per association x cluster (k = {K})."),
+    options = list(pageLength = 20),
+    class   = "stripe hover compact"
+  )
+```
+
+---
+
+# 7 · Cluster Ecological Profiles
+
+<div class="section-note">
+This section characterises the `r K` Ward/Jaccard clusters from Section 6.
+</div>
+
+## 7.1 · Are the Clusters Statistically Meaningful?
+
+```{r cluster-permanova}
+set.seed(42)
+cluster_fac   <- factor(clusters[rownames(sp_mat)])
+permanova_res <- adonis2(jac_dist ~ cluster_fac, permutations = 199)
+
+tibble(
+  Term      = c("Cluster membership", "Residual", "Total"),
+  Df        = permanova_res$Df,
+  `Sum Sq`  = round(permanova_res$SumOfSqs, 2),
+  R2        = round(permanova_res$R2, 3),
+  F         = round(permanova_res$F, 2),
+  `p-value` = permanova_res$`Pr(>F)`
+) %>%
+  kable(caption = glue("Table 7a. PERMANOVA (199 permutations, k = {K})."),
+        digits = 3, na.rm = TRUE) %>%
+  kable_styling(bootstrap_options = c("striped","hover"), full_width = FALSE)
+```
+
+
+
+```{r indicspecies, message=FALSE, warning=FALSE}
+have_indic <- requireNamespace("indicspecies", quietly = TRUE)
+if (have_indic) {
+  set.seed(42)
+  indic_res <- indicspecies::multipatt(
+    sp_mat, cluster_fac, func = "r.g", duleg = TRUE,
+    control = permute::how(nperm = 199)
+  )
+  indic_tbl <- indic_res$sign %>%
+    as_tibble(rownames = "species") %>%
+    filter(p.value <= 0.05, !is.na(p.value)) %>%
+    mutate(cluster = as.integer(index)) %>%
+    select(cluster, species, stat, p.value) %>%
+    arrange(cluster, desc(stat))
+} else {
+  indic_tbl <- tibble(cluster = integer(), species = character(),
+                       stat = double(), p.value = double())
+}
+```
+
+```{r indicspecies-table}
+if (nrow(indic_tbl) > 0) {
+  indic_tbl %>%
+    group_by(cluster) %>%
+    slice_max(stat, n = 5, with_ties = FALSE) %>%
+    ungroup() %>%
+    rename(Cluster = cluster, Species = species,
+           `Indicator value` = stat, `p-value` = p.value) %>%
+    mutate(`Indicator value` = round(`Indicator value`, 3),
+           `p-value` = round(`p-value`, 3)) %>%
+    datatable(
+      caption = "Table 7b. Statistically significant indicator species per cluster (p <= 0.05, top 5 per cluster).",
+      filter  = "top",
+      options = list(pageLength = 15),
+      class   = "stripe hover compact"
+    )
+} else {
+  cat("No indicator species reached p <= 0.05.")
+}
+```
+
+## 7.2 · Diversity and Spread by Cluster
+
+```{r cluster-diversity}
+div_df <- tibble(
+  geo_releve_id = as.integer(rownames(sp_mat)),
+  richness      = specnumber(sp_mat),
+  shannon       = diversity(sp_mat, index = "shannon"),
+  simpson       = diversity(sp_mat, index = "simpson")
+) %>%
+  mutate(evenness = if_else(richness > 1, shannon / log(richness), NA_real_)) %>%
+  left_join(cluster_df, by = "geo_releve_id") %>%
+  left_join(survey %>% distinct(geo_releve_id, class, association),
+            by = "geo_releve_id")
+
+cluster_summary <- div_df %>%
+  group_by(cluster) %>%
+  summarise(
+    n_releves      = n(),
+    mean_richness  = round(mean(richness), 1),
+    sd_richness    = round(sd(richness), 1),
+    mean_shannon   = round(mean(shannon), 2),
+    mean_simpson   = round(mean(simpson), 2),
+    mean_evenness  = round(mean(evenness, na.rm = TRUE), 2),
+    dominant_class = names(sort(table(class), decreasing = TRUE))[1],
+    dominant_assoc = names(sort(table(association), decreasing = TRUE))[1],
+    .groups = "drop"
+  ) %>%
+  arrange(desc(n_releves))
+```
+
+
+```{r cluster-diversity-spread, fig.height=6}
+p_div_box <- ggplot(div_df, aes(x = factor(cluster), y = richness,
+                                 fill = factor(cluster))) +
+  geom_boxplot(show.legend = FALSE, outlier.size = 1, outlier.alpha = 0.5,
+               colour = "#555555") +
+  scale_fill_manual(values = cluster_cols) +
+  labs(title = "Species richness per releve, by cluster",
+       x = "Cluster", y = "Species richness") +
+  theme_skye(10)
+
+p_div_shannon <- ggplot(div_df, aes(x = factor(cluster), y = shannon,
+                                      fill = factor(cluster))) +
+  geom_boxplot(show.legend = FALSE, outlier.size = 1, outlier.alpha = 0.5,
+               colour = "#555555") +
+  scale_fill_manual(values = cluster_cols) +
+  labs(title = "Shannon diversity per releve, by cluster",
+       x = "Cluster", y = "Shannon diversity (H')") +
+  theme_skye(10)
+
+p_div_box / p_div_shannon
+```
+
+### Per-Cluster Summary Table
+
+```{r cluster-summary-table}
+cluster_summary %>%
+  rename(Cluster = cluster, `Releves (n)` = n_releves,
+         `Mean richness` = mean_richness, `SD richness` = sd_richness,
+         `Mean Shannon` = mean_shannon, `Mean Simpson` = mean_simpson,
+         `Mean evenness` = mean_evenness,
+         `Dominant class` = dominant_class,
+         `Dominant association` = dominant_assoc) %>%
+  datatable(
+    caption = "Table 7c. Diversity, spread, and dominant vegetation unit per cluster.",
+    options = list(pageLength = 10, dom = "t"),
+    class   = "stripe hover compact"
+  )
+```
+
+### Narrative Summary - Top 3 Clusters by Size
+```{r cluster-narrative, results='asis'}
+top3_clusters <- cluster_summary %>% slice_head(n = 3) %>% pull(cluster)
+
+for (cl in top3_clusters) {
+  cl_row <- cluster_summary %>% filter(cluster == cl)
+  top_sp <- div_df %>%
+    filter(cluster == cl) %>%
+    pull(geo_releve_id) %>%
+    as.character() %>%
+    { sp_mat[., , drop = FALSE] } %>%
+    colSums() %>%
+    sort(decreasing = TRUE) %>%
+    head(5)
+  top_sp_str <- paste(glue("*{names(top_sp)}* ({round(100 * top_sp / cl_row$n_releves, 0)}%)"),
+                      collapse = ", ")
+  indic_str <- indic_tbl %>%
+    filter(cluster == cl) %>%
+    slice_max(stat, n = 3, with_ties = FALSE) %>%
+    pull(species)
+  indic_str <- if (length(indic_str) > 0) paste(glue("*{indic_str}*"), collapse = ", ") else "none reached p <= 0.05"
+
+  cat(glue(
+    "\n\n**Cluster {cl}** ({cl_row$n_releves} releves, dominated by *{cl_row$dominant_class}* -- mostly the *{cl_row$dominant_assoc}* association): ",
+    "mean species richness {cl_row$mean_richness} (Shannon H' = {cl_row$mean_shannon}). ",
+    "Most frequent species: {top_sp_str}. ",
+    "Statistically significant indicator species: {indic_str}.\n"
+  ))
+}
+```
+
+## 7.3 · What Dominates Each Cluster
+
+```{r cluster-dominant-species, fig.height=20, fig.width=12}
+cluster_top_sp <- div_df %>%
+  select(geo_releve_id, cluster) %>%
+  left_join(
+    survey %>% filter(presence_binary == TRUE) %>%
+      select(geo_releve_id, species),
+    by = "geo_releve_id"
+  ) %>%
+  count(cluster, species, name = "n") %>%
+  left_join(cluster_summary %>% select(cluster, n_releves), by = "cluster") %>%
+  mutate(pct = round(100 * n / n_releves, 0)) %>%
+  group_by(cluster) %>%
+  slice_max(pct, n = 8, with_ties = FALSE) %>%
+  ungroup() %>%
+  mutate(sp_label = paste(cluster, species, sep = "___"),
+         sp_label = fct_reorder(sp_label, pct))
+
+ggplot(cluster_top_sp,
+       aes(x = pct, y = sp_label, fill = factor(cluster))) +
+  geom_col(width = 0.75, show.legend = FALSE) +
+  scale_fill_manual(values = cluster_cols) +
+  scale_y_discrete(labels = function(x) str_remove(x, ".*___")) +
+  scale_x_continuous(expand = expansion(mult = c(0, 0.25))) +
+  facet_wrap(~ glue("Cluster {cluster}"), scales = "free_y", ncol = 2) +
+  labs(title = glue("Dominant species per cluster (k = {K})"),
+       x = "% of releves in cluster", y = NULL) +
+  theme_skye(9) +
+  theme(strip.text  = element_text(size = 9, face = "bold"),
+        axis.text.y = element_text(size = 7, face = "italic"))
+```
+
+## 7.4 · Cluster Composition - Stacked Proportions
+
+```{r cluster-stacked-class, fig.height=6}
+stacked_class_df <- div_df %>%
+  count(cluster, class, name = "n") %>%
+  group_by(cluster) %>%
+  mutate(prop = n / sum(n)) %>%
+  ungroup()
+
+class_pal_local <- colorRampPalette(brewer.pal(9, "Paired"))(n_distinct(stacked_class_df$class))
+
+ggplot(stacked_class_df,
+       aes(x = factor(cluster), y = prop, fill = class)) +
+  geom_col(position = "fill", width = 0.8) +
+  scale_fill_manual(values = class_pal_local, name = "Vegetation class") +
+  scale_y_continuous(labels = scales::percent) +
+  labs(title = "Vegetation-class composition by cluster",
+       x = "Cluster", y = "Proportion of releves") +
+  theme_skye(10) +
+  theme(legend.text = element_text(size = 7), legend.position = "right")
+```
+
+
+# 10 · Releve Reference Table
+
+
+Full geographic index of all releves.. Filter, search, or sort any column.
+
+
+```{r releve-table}
+survey %>%
+  distinct(geo_releve_id, ref_code, table_id, latitude, longitude,
+           altitude_m, slope_deg, aspect_deg, class, association) %>%
+  arrange(geo_releve_id) %>%
+  datatable(
+    caption = "Table 8. Complete releve index, SW to NE.",
+    filter  = "top",
+    options = list(pageLength = 25, scrollX = TRUE),
+    class   = "stripe hover compact"
+  )
+```
+---
+
+*Analysis by Bhagyesh Sagole & Pawan Kumar · Data: Birks H.J.B. (1973)*
