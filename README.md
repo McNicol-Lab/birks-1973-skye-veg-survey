@@ -1,10 +1,10 @@
 # Birks 1973 Vegetation Surveys – Chapter 4 Data Extraction
 
 **Project**: Digitization, extraction, cleaning, and preliminary analysis of vegetation survey tables from H.J.B. Birks’ 1973 PhD thesis (Chapter 4), Isle of Skye, Scotland.
-
+**Data Origin**: Birks, H. J. B. (1973). “Part II. The Present Flora and Vegetation of the Isle of Skye,” in Past and Present Vegetation of the Isle of Skye, (32 East 57th Street, New York, NY: Syndics of the Cambridge University Press), 11–220.
 **Repository maintainers**: Gavin McNicol (PI)  
-**Contributors**: [Student 1 Name], [Student 2 Name] (UIC CS)  
-**Timeline**: June 1 – July 10, 2025
+**Contributors**: Bhagyesh Sagole, Pawan Kumar (UIC CS)  
+
 
 ---
 
@@ -13,10 +13,7 @@
 Extract, clean, and harmonize vegetation survey data from Birks (1973) Chapter 4 tables to produce tidy, analysis-ready CSV files and perform preliminary clustering of survey sites. This dataset will support paleoecological research on Holocene vegetation patterns on Skye.
 
 ## Data Source
-
-Scanned tables from H.J.B. Birks’ 1973 PhD thesis (Chapter 4).  
-**Digitized images**: Available in the shared Google Drive folder:  
-https://drive.google.com/drive/folders/18Zxvjh24F09ZtroSKzTkWnSDtKWyZoEm?usp=sharing
+Tables from **Birks, H. J. B. (1973).** “Part II. The Present Flora and Vegetation of the Isle of Skye,” in Past and Present Vegetation of the Isle of Skye, (32 East 57th Street, New York, NY: Syndics of the Cambridge University Press), 11–220.
 
 ## Workflow
 
@@ -94,39 +91,3 @@ Optionally download a Google Drive image folder into `images/`:
 ```bash
 python3 scripts/download_drive.py
 ```
-
-## Repository Structure (suggested)
-
-```text
-birks-1973-skye-veg/
-├── data_raw/              # Original extracted tables (do not edit)
-├── data_clean/            # Final tidy CSVs (main output)
-├── scripts/
-│   ├── 01_extraction/
-│   ├── 02_qc/
-│   ├── 03_cleaning/
-│   ├── 04_harmonization/
-│   ├── 05_analysis/
-│   └── utils/
-├── docs/                  # Notes, data dictionary, codebook
-├── outputs/               # Figures, clustering results
-├── README.md
-└── requirements.txt or environment.yml
-```
-
-## Collaboration Guidelines
-
-- **Do not push directly to `main`** (protected branch).
-- **Workflow**:
-  1. Fork this repository.
-  2. Create a feature branch (`git checkout -b yourname-task-01`).
-  3. Work on your scripts and commit regularly.
-  4. Open a **Pull Request** to `main` when ready for review.
-- Gavin will review PRs, merge changes, and maintain the canonical version.
-- You can always clone the main repo to see the latest integrated code.
-
-# Deliverables by July 10
-
-Clean, well-documented .csv files in data_clean/
-Reproducible R/Python scripts
-Short report/notebook with preliminary clustering results and data dictionary
