@@ -23,3 +23,9 @@ incognito.md
 docs/*_cache/
 docs/*_files/
 docs/skye_veg_eda.Rmd
+
+# Lab clutter — keep out of DOI snapshots
+.vscode/
+.idea/
+*.gguf
+images/

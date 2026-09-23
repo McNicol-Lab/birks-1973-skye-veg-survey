@@ -1,93 +1,65 @@
-# Birks 1973 Vegetation Surveys – Chapter 4 Data Extraction
+# Digitised phytosociological relevés from Birks (1973), Isle of Skye
 
-**Project**: Digitization, extraction, cleaning, and preliminary analysis of vegetation survey tables from H.J.B. Birks’ 1973 PhD thesis (Chapter 4), Isle of Skye, Scotland.
-**Data Origin**: Birks, H. J. B. (1973). “Part II. The Present Flora and Vegetation of the Isle of Skye,” in Past and Present Vegetation of the Isle of Skye, (32 East 57th Street, New York, NY: Syndics of the Cambridge University Press), 11–220.
-**Repository maintainers**: Gavin McNicol (PI)  
-**Contributors**: Bhagyesh Sagole, Pawan Kumar (UIC CS)  
+**Version:** 1.0.0 (Zenodo-ready snapshot)  
+**Contents:** 520 plots · 897 taxa · 26,799 long-table observations  
+**License:** [CC BY 4.0](LICENSE) (digitisation & derived fields only — not the CUP book or page scans)
 
+## What this is
 
----
+A tidy digitisation of **present-vegetation** phytosociological relevés published in:
 
-## Project Goal
+> Birks, H. J. B. (1973). *Past and Present Vegetation of the Isle of Skye*. Cambridge University Press. Part II (“The Present Flora and Vegetation of the Isle of Skye”), pp. 11–220.
 
-Extract, clean, and harmonize vegetation survey data from Birks (1973) Chapter 4 tables to produce tidy, analysis-ready CSV files and perform preliminary clustering of survey sites. This dataset will support paleoecological research on Holocene vegetation patterns on Skye.
+Field surveys were carried out around **1966–1969**. These are contemporary relevés from that period, not Holocene paleoecological reconstructions.
 
-## Data Source
-Tables from **Birks, H. J. B. (1973).** “Part II. The Present Flora and Vegetation of the Isle of Skye,” in Past and Present Vegetation of the Isle of Skye, (32 East 57th Street, New York, NY: Syndics of the Cambridge University Press), 11–220.
+Original surveyor / published source: **H. J. B. Birks**. Digitisation and packaging: **Gavin McNicol**, **Bhagyesh Sagole**, **Pawan Kumar** (UIC).
 
-## Workflow
+## Cite this dataset
 
-1. **Data Extraction** – Convert table images into structured data (CSV or Excel).
-2. **Quality Control** – Identify and resolve anomalies (footnotes, symbols, merged cells, etc.).
-3. **Data Cleaning** – Standardize species names, site codes, abundance values, and metadata.
-4. **Harmonization & Merging** – Combine tables into consistent, tidy data frames.
-5. **Export** – Produce clean `.csv` files (e.g., `survey_sites.csv`, `species_composition.csv`, `environmental_variables.csv`).
-6. **Preliminary Analysis** – Clustering (e.g., hierarchical, k-means, NMDS) of vegetation survey sites.
+See [`CITATION.cff`](CITATION.cff). After Zenodo minting, replace the DOI placeholder in `LICENSE` / release notes with the Zenodo DOI.
 
-## Local Offline Pipeline
+Also cite the original book when using the ecological content.
 
-This branch includes a local Ollama-based pipeline for converting image scans into tracked CSV files.
+## Files to use
 
-Current folder layout:
+| Path | Role |
+|------|------|
+| [`data/v1/observations.csv`](data/v1/observations.csv) | QC’d long plot×taxon table (`.` absences → blank) |
+| [`data/v1/plots.csv`](data/v1/plots.csv) | One row per `geo_releve_id` |
+| [`data/v1/taxa.csv`](data/v1/taxa.csv) | Taxon index |
+| [`data/v1/codebook.md`](data/v1/codebook.md) | Column definitions & known gaps |
+
+Upstream extraction table (provenance): `output/output.csv`.
+
+## Georeferencing
+
+Where OS grid references appear in the published tables, they were converted to WGS84 latitude/longitude. Coverage is incomplete at fine scale when only coarse grid references were printed. Altitude is sparse in the source tables.
+
+## Known limitations
+
+- Domin symbols such as `+` and `x` are retained; cover % mapping is incomplete for those cells.
+- Altitude is available for only a small subset of plots.
+- Table **page scans are not included** (Cambridge University Press copyright). They are not public domain.
+- Syntaxonomic names and taxon strings follow the published tables (period taxonomy).
+
+## Extraction pipeline (optional)
+
+Code under [`src/`](src/) reproduces the digitisation workflow (local vision / parsing tools). **It is not required to use the data products in `data/v1/`.** Scans used during extraction are stored privately and must not be redistributed with a DOI package.
+
+## Repository layout
 
 ```text
-scripts/      Python pipeline scripts
-prompts/      Model extraction prompts
-docs/         Human-readable setup notes and output explanations
-images/       Raw local scans, ignored by git
-output/       Tracked CSV outputs
+data/v1/     Citable CSV products + codebook
+output/      Upstream extraction outputs (provenance)
+src/         Digitization pipeline (optional)
+docs/        Working notes / EDA (not part of the minimal DOI file set)
 ```
 
-For detailed Mac/Windows setup instructions, read `docs/setup.md`.
+## Zenodo deposit note
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
+Prefer a GitHub Release **v1.0.0** linked via the Zenodo–GitHub integration, or upload a zip limited to:
 
-Ollama must be running before either model-backed script is started. Pull the models once:
+`LICENSE`, `CITATION.cff`, `README.md`, `data/v1/*`  
+(and optionally a short note pointing at `src/` on GitHub).
 
-```bash
-ollama pull qwen2.5vl:3b
-```
-
-`qwen2.5vl:3b` is the default vision model for this 8GB MacBook Air because it completed the first local smoke test.
-
-Put raw scans in `images/`. That folder and common image extensions are ignored by git.
-
-Run a safe three-image tidy extraction test first:
-
-```bash
-python3 scripts/parse_images.py --resume --limit 3 --batch-size 1 --max-image-side 1000 --num-predict 8192 --mode tidy --prompt-file prompts/csv_parsing_instructions.md
-```
-
-This reads supported images from `images/`, sends one image at a time to `qwen2.5vl:3b`, uses `prompts/csv_parsing_instructions.md`, and writes tidy CSV outputs:
-
-- `output/output.csv` for long-format species observations
-- `output/image_tracking.csv` for one-row-per-image progress tracking
-
-The script saves both files after every image. `--resume` skips images already
-marked `successful` or `unsuccessful`, so the same command can safely be run
-again after an interruption. Use `--retry-failed` when unsuccessful images
-should be attempted again.
-
-After reviewing the three-image test, process all remaining images:
-
-```bash
-python3 scripts/parse_images.py --resume --batch-size 1 --max-image-side 1000 --num-predict 8192 --mode tidy --prompt-file prompts/csv_parsing_instructions.md
-```
-
-Retry only the failed images while continuing to skip successful images:
-
-```bash
-python3 scripts/parse_images.py --resume --retry-failed --batch-size 1 --max-image-side 1000 --num-predict 8192 --mode tidy --prompt-file prompts/csv_parsing_instructions.md
-```
-
-`--max-image-side` makes a temporary resized copy for Ollama without changing the original scan. `--num-predict` caps the model response length. `--batch-size` remains accepted for compatibility, but durable runs save after every image.
-
-Optionally download a Google Drive image folder into `images/`:
-
-```bash
-python3 scripts/download_drive.py
-```
+Do not include `.vscode/`, local model notes, or page images.

@@ -1,0 +1,27 @@
+Creative Commons Attribution 4.0 International
+
+Copyright (c) 2026 Gavin McNicol, Bhagyesh Sagole, Pawan Kumar, and contributors
+
+This repository’s digitised tables, derived CSV products, metadata, and
+documentation are licensed under CC BY 4.0.
+
+You are free to share and adapt the material for any purpose, even commercially,
+provided you give appropriate credit, provide a link to the license, and indicate
+if changes were made. Full legal code:
+https://creativecommons.org/licenses/by/4.0/legalcode
+
+SCOPE
+- Covered: our digitisation of the published phytosociological tables, added
+  fields (e.g. georeferencing, tidy long-table structure), and documentation.
+- Not covered: the Cambridge University Press book text, page scans / table
+  images, or other CUP copyrighted material. Scans are intentionally excluded
+  from this repository and from any DOI snapshot.
+
+ATTRIBUTION (suggested)
+McNicol, G., Sagole, B., Kumar, P., & Birks, H. J. B. (2026). Digitised
+phytosociological relevés from Birks (1973), Isle of Skye (Version 1.0.0)
+[Data set]. Zenodo. https://doi.org/XXXX  (DOI after minting)
+
+Original survey and published source:
+Birks, H. J. B. (1973). Past and Present Vegetation of the Isle of Skye.
+Cambridge University Press. Part II, pp. 11–220. Field surveys ca. 1966–1969.
