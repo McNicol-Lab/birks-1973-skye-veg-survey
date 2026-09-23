@@ -1,0 +1,45 @@
+cff-version: 1.2.0
+title: "Digitised phytosociological relevés from Birks (1973), Isle of Skye"
+message: "If you use this dataset, please cite it using the metadata from this file."
+type: dataset
+authors:
+  - family-names: McNicol
+    given-names: Gavin
+    affiliation: "University of Illinois Chicago"
+  - family-names: Sagole
+    given-names: Bhagyesh
+    affiliation: "University of Illinois Chicago"
+  - family-names: Kumar
+    given-names: Pawan
+    affiliation: "University of Illinois Chicago"
+  - family-names: Birks
+    given-names: H. J. B.
+    alias: "John Birks"
+    affiliation: "University of Bergen"
+version: "1.0.0"
+date-released: "2026-09-23"
+license: CC-BY-4.0
+repository-code: "https://github.com/McNicol-Lab/birks-1973-skye-veg-survey"
+abstract: >
+  Tidy digitisation of present-vegetation phytosociological relevés from
+  H. J. B. Birks (1973), Past and Present Vegetation of the Isle of Skye
+  (Cambridge University Press), Part II. The deposit includes 520 plots,
+  897 taxa, and 26,799 long-table observations (including coded absences),
+  with OS grid references and WGS84 coordinates where available. License
+  covers the digitisation and derived fields, not CUP page scans.
+keywords:
+  - phytosociology
+  - vegetation survey
+  - Isle of Skye
+  - Scotland
+  - Domin scale
+  - Birks
+references:
+  - type: book
+    authors:
+      - family-names: Birks
+        given-names: H. J. B.
+    title: "Past and Present Vegetation of the Isle of Skye"
+    publisher: "Cambridge University Press"
+    year: 1973
+    notes: "Part II. The Present Flora and Vegetation of the Isle of Skye, pp. 11–220. Field data collected ca. 1966–1969."
